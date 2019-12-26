@@ -1,0 +1,78 @@
+library(uuid)
+library(nanotime)
+library(rjson)
+
+create_frame <- function (stack, token, handler, auto_push = FALSE,
+                          protocol = json_protocol("https://api.dstack.ai"),
+                          encryption = no_encryption) {
+
+  frame <- list(stack = stack, token=token, handler=handler, auto_push=auto_push,
+              protocol=protocol, encryption=encryption, data=list(), index=0)
+
+  frame$id <- UUIDgenerate()
+  frame$timestamp <- as.character(as.integer64(nanotime(Sys.time())))
+
+  return(frame)
+}
+
+commit <- function (frame, obj, description=NULL, params=NULL) {
+  data <- frame$handler(obj, description, params)
+  encrypted_data <- frame$encryption(data)
+  frame$data <- append(frame$data, list(filter_null(encrypted_data)))
+  if (frame$auto_push == TRUE) {
+    frame <- push_data(encrypted_data)
+  }
+  return(frame)
+}
+
+push_data <- function (frame, data) {
+  f <- new_frame(frame)
+  f$index <- frame$index
+  f$attachments[[1]] <- data
+  frame$index <- frame$index + 1
+  send_push(f)
+  return(frame)
+}
+
+push <- function (frame) {
+  f <- new_frame(frame)
+  if (frame$auto_push == FALSE) {
+    f$attachments <- frame$data
+    send_push(frame, f)
+  } else {
+    f$total <- frame$index
+    send_push(frame, f)
+  }
+}
+
+new_frame <- function (frame) {
+  return(list(stack=frame$stack,
+              token=frame$token,
+              id=frame$id,
+              timestamp=frame$timestamp))
+}
+
+filter_null <- function (mylist) {
+  names(mylist) <- 1:length(mylist)
+  return(mylist[which(!sapply(mylist, is.null))])
+}
+
+send_access <- function (frame) {
+  req <- list(stack=frame$stack, token=frame$token)
+  res <- frame$protocol("/stacks/access", req)
+  return(res)
+}
+
+send_push <- function (frame, f) {
+  res <- frame$protocol("/stacks/push", f)
+  return(res)
+}
+
+json_protocol <- function (server) {
+  return(list())
+}
+
+no_encryption <- function (data) {
+  return(data)
+}
+
