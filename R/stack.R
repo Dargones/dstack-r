@@ -1,6 +1,8 @@
 library(uuid)
 library(nanotime)
 library(rjson)
+library(httr)
+library(rlist)
 
 create_frame <- function (stack, token, handler, auto_push = FALSE,
                           protocol = json_protocol("https://api.dstack.ai"),
@@ -18,7 +20,7 @@ create_frame <- function (stack, token, handler, auto_push = FALSE,
 commit <- function (frame, obj, description=NULL, params=NULL) {
   data <- frame$handler(obj, description, params)
   encrypted_data <- frame$encryption(data)
-  frame$data <- append(frame$data, list(filter_null(encrypted_data)))
+  frame$data <- append(frame$data, list(list.clean(encrypted_data)))
   if (frame$auto_push == TRUE) {
     frame <- push_data(encrypted_data)
   }
@@ -37,6 +39,7 @@ push_data <- function (frame, data) {
 push <- function (frame) {
   f <- new_frame(frame)
   if (frame$auto_push == FALSE) {
+    print(frame$data)
     f$attachments <- frame$data
     send_push(frame, f)
   } else {
@@ -52,10 +55,6 @@ new_frame <- function (frame) {
               timestamp=frame$timestamp))
 }
 
-filter_null <- function (mylist) {
-  names(mylist) <- 1:length(mylist)
-  return(mylist[which(!sapply(mylist, is.null))])
-}
 
 send_access <- function (frame) {
   req <- list(stack=frame$stack, token=frame$token)
