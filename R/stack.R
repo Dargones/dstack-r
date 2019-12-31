@@ -14,11 +14,12 @@ create_frame <- function (stack, token, handler, auto_push = FALSE,
   frame$id <- UUIDgenerate()
   frame$timestamp <- as.character(as.integer64(nanotime(Sys.time())))
 
+  send_access(frame)
   return(frame)
 }
 
 commit <- function (frame, obj, description=NULL, params=NULL) {
-  data <- frame$handler(obj, description, params)
+  data <- frame$handler$as_frame(obj, description, params)
   encrypted_data <- frame$encryption(data)
   frame$data <- append(frame$data, list(list.clean(encrypted_data)))
   if (frame$auto_push == TRUE) {
@@ -39,7 +40,6 @@ push_data <- function (frame, data) {
 push <- function (frame) {
   f <- new_frame(frame)
   if (frame$auto_push == FALSE) {
-    print(frame$data)
     f$attachments <- frame$data
     send_push(frame, f)
   } else {
@@ -52,7 +52,8 @@ new_frame <- function (frame) {
   return(list(stack=frame$stack,
               token=frame$token,
               id=frame$id,
-              timestamp=frame$timestamp))
+              timestamp=frame$timestamp,
+              type=frame$handler$type))
 }
 
 
