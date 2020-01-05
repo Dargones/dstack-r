@@ -4,17 +4,31 @@ library(rjson)
 library(httr)
 library(rlist)
 
-create_frame <- function (stack, token, handler, auto_push = FALSE,
-                          protocol = json_protocol("https://api.dstack.ai"),
-                          encryption = no_encryption) {
+.error <- function (status, message) {
+  stop(message)
+}
 
-  frame <- list(stack = stack, token=token, handler=handler, auto_push=auto_push,
-              protocol=protocol, encryption=encryption, data=list(), index=0)
+.check <- function (res, error) {
+  if (res$status != 0) error(res$status, res$message)
+}
 
+create_frame <- function (stack, token, handler,
+                          auto_push  = FALSE,
+                          protocol   = json_protocol("https://api.dstack.ai"),
+                          encryption = no_encryption,
+                          error      = .error) {
+  frame <- list(stack      = stack,
+                token      = token,
+                handler    = handler,
+                auto_push  = auto_push,
+                protocol   = protocol,
+                encryption = encryption,
+                data       = list(),
+                index      = 0,
+                error      = error)
   frame$id <- UUIDgenerate()
   frame$timestamp <- as.character(as.integer64(nanotime(Sys.time())))
-
-  send_access(frame)
+  .check(send_access(frame), error)
   return(frame)
 }
 
@@ -33,7 +47,7 @@ push_data <- function (frame, data) {
   f$index <- frame$index
   f$attachments[[1]] <- data
   frame$index <- frame$index + 1
-  send_push(f)
+  .check(send_push(f), frame$error)
   return(frame)
 }
 
@@ -41,24 +55,24 @@ push <- function (frame) {
   f <- new_frame(frame)
   if (frame$auto_push == FALSE) {
     f$attachments <- frame$data
-    send_push(frame, f)
+    .check(send_push(frame, f), frame$error)
   } else {
     f$total <- frame$index
-    send_push(frame, f)
+    .check(send_push(frame, f), frame$error)
   }
 }
 
 new_frame <- function (frame) {
-  return(list(stack=frame$stack,
-              token=frame$token,
-              id=frame$id,
-              timestamp=frame$timestamp,
-              type=frame$handler$type))
+  return(list(stack     = frame$stack,
+              token     = frame$token,
+              id        = frame$id,
+              timestamp = frame$timestamp,
+              type      = frame$handler$type))
 }
 
 
 send_access <- function (frame) {
-  req <- list(stack=frame$stack, token=frame$token)
+  req <- list(stack = frame$stack, token = frame$token)
   res <- frame$protocol("/stacks/access", req)
   return(res)
 }
@@ -69,7 +83,10 @@ send_push <- function (frame, f) {
 }
 
 json_protocol <- function (server) {
-  return(list())
+  return(function (endpoint, data) {
+    r <- POST(paste0("https://api.dstack.ai", endpoint), body = data, encode = "json")
+    return(content(r, "parsed"))
+  })
 }
 
 no_encryption <- function (data) {
