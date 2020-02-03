@@ -48,18 +48,7 @@ test_that("test access denied", {
   fail()
   },
   error = function (cond) {
-    expect_equal(geterrmessage(), "bad credentials")
+    expect_equal(geterrmessage(), .BAD_CREDENTIALS$message)
   })
 })
-
-# test_that("use real server", {
-#   f <- create_frame(stack    = "cheptsov/test",
-#                     token    = "f71e42ae-5209-4d21-933c-883d75722cf6",
-#                     handler  = ggplot_handler(),
-#                     protocol = json_protocol())
-#
-#   image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
-#   f <- commit(f, image, "My first plot")
-#   push(f)
-# })
 

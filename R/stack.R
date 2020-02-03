@@ -4,31 +4,31 @@ library(rjson)
 library(httr)
 library(rlist)
 
-.error <- function (status, message) {
+.error <- function (message) {
   stop(message)
 }
 
 .check <- function (res, error) {
-  if (res$status != 0) error(res$status, res$message)
+  if (http_error(res)) error(http_status(res)$message)
 }
 
-create_frame <- function (stack, token, handler,
+create_frame <- function (stack, handler,
+                          profile    = "default",
                           auto_push  = FALSE,
                           protocol   = json_protocol("https://api.dstack.ai"),
-                          encryption = no_encryption,
-                          error      = .error) {
+                          config     = .yaml_config(),
+                          encryption = no_encryption) {
   frame <- list(stack      = stack,
-                token      = token,
+                token      = config(profile),
                 handler    = handler,
                 auto_push  = auto_push,
                 protocol   = protocol,
                 encryption = encryption,
                 data       = list(),
-                index      = 0,
-                error      = error)
+                index      = 0)
   frame$id <- UUIDgenerate()
   frame$timestamp <- as.character(as.integer64(nanotime(Sys.time())))
-  .check(send_access(frame), error)
+  send_access(frame)
   return(frame)
 }
 
@@ -47,7 +47,7 @@ push_data <- function (frame, data) {
   f$index <- frame$index
   f$attachments[[1]] <- data
   frame$index <- frame$index + 1
-  .check(send_push(f), frame$error)
+  send_push(f)
   return(frame)
 }
 
@@ -55,11 +55,10 @@ push <- function (frame) {
   f <- new_frame(frame)
   if (frame$auto_push == FALSE) {
     f$attachments <- frame$data
-    .check(send_push(frame, f), frame$error)
   } else {
     f$total <- frame$index
-    .check(send_push(frame, f), frame$error)
   }
+  return(send_push(frame, f))
 }
 
 new_frame <- function (frame) {
@@ -82,9 +81,15 @@ send_push <- function (frame, f) {
   return(res)
 }
 
-json_protocol <- function (server) {
+json_protocol <- function (server, error = .error) {
   return(function (endpoint, data) {
-    r <- POST(paste0("https://api.dstack.ai", endpoint), body = data, encode = "json")
+    auth <- paste0("Bearer ", data$token)
+    body <- list.remove(data, "token")
+    # r <- with_config(verbose(), POST(paste0(server, endpoint),
+    r <- POST(paste0(server, endpoint),
+              body = body, encode = "json",
+              add_headers(.headers = c("Authorization"=auth)))
+    .check(r, error)
     return(content(r, "parsed"))
   })
 }
