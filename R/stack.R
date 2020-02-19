@@ -1,5 +1,5 @@
 library(uuid)
-library(nanotime)
+library(bit64)
 library(rjson)
 library(httr)
 library(rlist)
@@ -15,11 +15,13 @@ library(rlist)
 create_frame <- function (stack, handler,
                           profile    = "default",
                           auto_push  = FALSE,
-                          protocol   = json_protocol("https://api.dstack.ai"),
+                          protocol   = NULL,
                           config     = .yaml_config(),
                           encryption = no_encryption) {
+  conf <- config(profile)
+  protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
   frame <- list(stack      = stack,
-                token      = config(profile),
+                token      = conf$token,
                 handler    = handler,
                 auto_push  = auto_push,
                 protocol   = protocol,
@@ -27,7 +29,7 @@ create_frame <- function (stack, handler,
                 data       = list(),
                 index      = 0)
   frame$id <- UUIDgenerate()
-  frame$timestamp <- as.character(as.integer64(nanotime(Sys.time())))
+  frame$timestamp <- as.character(as.integer64(as.numeric(Sys.time()) * 1000)) # milliseconds
   send_access(frame)
   return(frame)
 }
