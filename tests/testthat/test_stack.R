@@ -4,20 +4,23 @@ library(ggplot2)
 .result <- NULL
 .valid_token <- "my_token"
 
-.SUCCESS <- list(status = 0, message = NULL)
-.BAD_CREDENTIALS <- list(status = 4, message = "bad credentials")
+.test_config <- function(token) {
+  return(function (profile) {
+    p <- list(token=token, user="test_user", server="https://api.dstack.ai")
+    return(p)
+  })
+}
 
 .setup_protocol <- function () {
   return(function(endpoint, data) {
     .result <<- list(endpoint = endpoint, data = data)
-    if (data$token != .valid_token) return(.BAD_CREDENTIALS)
-    return(.SUCCESS)
+    if (data$token != .valid_token) stop("Forbidden")
   })
 }
 
 .setup_frame <- function(stack, protocol = .setup_protocol(), token = .valid_token) {
   return(create_frame(stack    = stack,
-                      token    = token,
+                      config   = .test_config(token),
                       handler  = ggplot_handler(),
                       protocol = .setup_protocol()))
 }
@@ -48,7 +51,7 @@ test_that("test access denied", {
   fail()
   },
   error = function (cond) {
-    expect_equal(geterrmessage(), .BAD_CREDENTIALS$message)
+    expect_equal(geterrmessage(), "Forbidden")
   })
 })
 

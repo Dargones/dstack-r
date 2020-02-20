@@ -1,6 +1,6 @@
 library(yaml)
 
-.yaml_config <- function () {
+yaml_config <- function () {
   path <- ".dstack/config.yaml"
   if (!file.exists(path)) path <- paste0(path.expand('~'), "/", path)
   if (!file.exists(path)) stop("can't load config file")

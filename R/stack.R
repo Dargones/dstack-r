@@ -16,7 +16,7 @@ create_frame <- function (stack, handler,
                           profile    = "default",
                           auto_push  = FALSE,
                           protocol   = NULL,
-                          config     = .yaml_config(),
+                          config     = yaml_config(),
                           encryption = no_encryption) {
   conf <- config(profile)
   protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
