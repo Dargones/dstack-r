@@ -8,6 +8,6 @@ library(yaml)
   return(function (profile) {
     profile <- yaml$profiles[[profile]]
     server <- if (is.null(profile$server)) "https://api.dstack.ai" else profile$server
-    return(list(token=profile$token, server=server))
+    return(list(token=profile$token, user=profile$user, server=server))
   })
 }

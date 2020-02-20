@@ -1,5 +1,5 @@
 library(uuid)
-library(bit64)
+library(nanotime)
 library(rjson)
 library(httr)
 library(rlist)
@@ -21,6 +21,7 @@ create_frame <- function (stack, handler,
   conf <- config(profile)
   protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
   frame <- list(stack      = stack,
+                user       = conf$user,
                 token      = conf$token,
                 handler    = handler,
                 auto_push  = auto_push,
@@ -63,17 +64,20 @@ push <- function (frame) {
   return(send_push(frame, f))
 }
 
+stack_path <- function(frame) {
+  return(paste(frame$user, frame$stack, sep="/"))
+}
+
 new_frame <- function (frame) {
-  return(list(stack     = frame$stack,
+  return(list(stack     = stack_path(frame),
               token     = frame$token,
               id        = frame$id,
               timestamp = frame$timestamp,
               type      = frame$handler$type))
 }
 
-
 send_access <- function (frame) {
-  req <- list(stack = frame$stack, token = frame$token)
+  req <- list(stack = stack_path(frame), token = frame$token)
   res <- frame$protocol("/stacks/access", req)
   return(res)
 }
