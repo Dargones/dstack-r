@@ -12,6 +12,8 @@ library(rlist)
   if (http_error(res)) error(http_status(res)$message)
 }
 
+version <- "0.1.0"
+
 create_frame <- function (stack, handler,
                           profile    = "default",
                           auto_push  = FALSE,
@@ -64,6 +66,22 @@ push <- function (frame) {
   return(send_push(frame, f))
 }
 
+push_frame <- function (stack, obj, descripton = NULL, params = NULL,
+                        handler    = ggplot_handler(),
+                        protocol   = NULL,
+                        profile    = "default",
+                        config     = yaml_config(),
+                        encryption = no_encryption) {
+  frame <- create_frame(stack      = stack,
+                        handler    = handler,
+                        protocol   = protocol,
+                        profile    = profile,
+                        config     = config,
+                        encryption = encryption)
+  frame <- commit(frame, obj, descripton, params)
+  return(push(frame))
+}
+
 stack_path <- function(frame) {
   return(paste(frame$user, frame$stack, sep="/"))
 }
@@ -73,7 +91,10 @@ new_frame <- function (frame) {
               token     = frame$token,
               id        = frame$id,
               timestamp = frame$timestamp,
-              type      = frame$handler$type))
+              type      = frame$handler$type,
+              client    = "dstack-r",
+              version   = version,
+              os        = get_os_info()))
 }
 
 send_access <- function (frame) {
@@ -104,3 +125,7 @@ no_encryption <- function (data) {
   return(data)
 }
 
+get_os_info <- function() {
+  info <- Sys.info()
+  return(list(sysname=info["sysname"], release=info["release"], version=info["version"], machine=info["machine"]))
+}
