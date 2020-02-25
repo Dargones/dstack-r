@@ -51,6 +51,7 @@ version <- "0.1.0"
 #' @return New frame.
 #' @examples
 #' library(ggplot2)
+#' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' frame <- create_frame(stack = "diamonds")
 #' frame <- commit(frame, image, "Diamonds bar chart")
@@ -91,6 +92,7 @@ create_frame <- function (stack,
 #' @return Changed frame.
 #' @examples
 #' library(ggplot2)
+#' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' frame <- create_frame(stack = "diamonds")
 #' frame <- commit(frame, image, "Diamonds bar chart")
@@ -121,6 +123,7 @@ push_data <- function (frame, data) {
 #' @return Stack URL.
 #' @examples
 #' library(ggplot2)
+#' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' frame <- create_frame(stack = "diamonds")
 #' frame <- commit(frame, image, "Diamonds bar chart")
@@ -147,6 +150,7 @@ push <- function (frame) {
 #' @return Stack URL.
 #' @examples
 #' library(ggplot2)
+#' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' push_frame("diamonds", image, "Diamonds bar chart")
 push_frame <- function (stack, obj, descripton = NULL, params = NULL,
