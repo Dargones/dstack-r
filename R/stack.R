@@ -14,7 +14,49 @@ library(rlist)
 
 version <- "0.1.0"
 
-create_frame <- function (stack, handler,
+#' Create a new frame in stack
+#'
+#' @param stack A name of stack to use.
+#' @param handler A handler which can be specified in the case of custom content,
+#' but by default it is \code{json_handler}.
+#' @param profile A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
+#' The system is looking for specified profile as follows:
+#' it looks into working directory to find a configuration file (local configuration),
+#' if the file doesn't exist it looks into user directory to find it (global configuration).
+#' The best way to manage profiles is to have dstack CLI tools installed. These tools are written in Python 3,
+#' so you have to install dstack support. In the case of PyPI you should type
+#'
+#' \code{$ pip install dstack}
+#'
+#' We recommend to use local (virtual) environment to install the package.
+#' You can use this command in console:
+#'
+#' \code{$ dstack config --list}
+#'
+#' to list existing profiles or add or replace token by following command
+#'
+#' \code{$ dstack config --profile <PROFILE>}
+#'
+#' or simply
+#'
+#' \code{$ dstack config}
+#'
+#' if <PROFILE> is not specified 'default' profile will be created. The system asks you about token
+#' from command line, make sure that you have already obtained token from the site.
+#' @param auto_push Tells the system to push frame just after commit.
+#' It may be useful if you want to see result immediately. Default is \code{FALSE}.
+#' @param protocol Protocol to use, usually it is \code{NULL} this means to use \code{json_protocol} here.
+#' @param config A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.
+#' @param encryption This is a ecryption method. By default \code{no_encryption} will be used.
+#' @return New frame.
+#' @examples
+#' library(ggplot2)
+#' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
+#' frame <- create_frame(stack = "diamonds")
+#' frame <- commit(frame, image, "Diamonds bar chart")
+#' print(push(frame)) # print actual stack URL
+create_frame <- function (stack,
+                          handler    = ggplot_handler(),
                           profile    = "default",
                           auto_push  = FALSE,
                           protocol   = NULL,
@@ -37,6 +79,22 @@ create_frame <- function (stack, handler,
   return(frame)
 }
 
+#' Commit data to stack frame.
+#'
+#' @param frame A frame you want to commit.
+#' @param obj A data to commit. Data will be preprocessed by the handler but dependently on auto_push
+#' mode will be sent to server or not. If auto_push is False then the data won't be sent.
+#' Explicit push call need anyway to process committed data. auto_push is useful only in the
+#' case of multiple data objects in the stack frame, e.g. set of plots with settings.
+#' @param description Description of the data.
+#' @param params Parameters associated with this data, e.g. plot settings.
+#' @return Changed frame.
+#' @examples
+#' library(ggplot2)
+#' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
+#' frame <- create_frame(stack = "diamonds")
+#' frame <- commit(frame, image, "Diamonds bar chart")
+#' print(push(frame)) # print actual stack URL
 commit <- function (frame, obj, description=NULL, params=NULL) {
   data <- frame$handler$as_frame(obj, description, params)
   encrypted_data <- frame$encryption(data)
@@ -56,6 +114,17 @@ push_data <- function (frame, data) {
   return(frame)
 }
 
+#'Pushes all commits to server. In the case of auto_push mode it sends only a total number
+#'of elements in the frame. So call this method is obligatory to close frame anyway.
+#'
+#' @param frame A frame to push.
+#' @return Stack URL.
+#' @examples
+#' library(ggplot2)
+#' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
+#' frame <- create_frame(stack = "diamonds")
+#' frame <- commit(frame, image, "Diamonds bar chart")
+#' print(push(frame)) # print actual stack URL
 push <- function (frame) {
   f <- new_frame(frame)
   if (frame$auto_push == FALSE) {
@@ -66,6 +135,20 @@ push <- function (frame) {
   return(send_push(frame, f))
 }
 
+#' Creates frame in the stack, commits and pushes data in a single operation.
+#'         stack: A stack you want to commit and push to.
+#' @param obj: Object to commit and push, e.g. plot.
+#' @param description: Optional description of the object.
+#' @param params: Optional parameters.
+#' @param handler: Specify handler to handle the object, if it's None then \code{ggplot_handler} will be used.
+#' @param profile: Profile you want to use, i.e. username and token. Default profile is 'default'.
+#' @param config: Configuration to manage profiles. If it is unspecified \code{yaml_config} will be used.
+#' @param encryption: Encryption method by default \code{no_encryption} will be used.
+#' @return Stack URL.
+#' @examples
+#' library(ggplot2)
+#' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
+#' push_frame("diamonds", image, "Diamonds bar chart")
 push_frame <- function (stack, obj, descripton = NULL, params = NULL,
                         handler    = ggplot_handler(),
                         protocol   = NULL,
