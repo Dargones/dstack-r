@@ -48,6 +48,7 @@ version <- "0.1.0"
 #' @param protocol Protocol to use, usually it is \code{NULL} this means to use \code{json_protocol} here.
 #' @param config A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.
 #' @param encryption This is a ecryption method. By default \code{no_encryption} will be used.
+#' @param check_access Check access to specified stack, default is \code{TRUE}.
 #' @return New frame.
 #' @examples
 #' library(ggplot2)
@@ -57,12 +58,13 @@ version <- "0.1.0"
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 create_frame <- function (stack,
-                          handler    = ggplot_handler(),
-                          profile    = "default",
-                          auto_push  = FALSE,
-                          protocol   = NULL,
-                          config     = yaml_config(),
-                          encryption = no_encryption) {
+                          handler      = ggplot_handler(),
+                          profile      = "default",
+                          auto_push    = FALSE,
+                          protocol     = NULL,
+                          config       = yaml_config(),
+                          encryption   = no_encryption,
+                          check_access = TRUE) {
   conf <- config(profile)
   protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
   frame <- list(stack      = stack,
@@ -76,7 +78,7 @@ create_frame <- function (stack,
                 index      = 0)
   frame$id <- UUIDgenerate()
   frame$timestamp <- as.character(as.integer64(as.numeric(Sys.time()) * 1000)) # milliseconds
-  send_access(frame)
+  if (check_access) send_access(frame)
   return(frame)
 }
 
@@ -159,18 +161,19 @@ push_frame <- function (stack, obj, descripton = NULL, params = NULL,
                         profile    = "default",
                         config     = yaml_config(),
                         encryption = no_encryption) {
-  frame <- create_frame(stack      = stack,
-                        handler    = handler,
-                        protocol   = protocol,
-                        profile    = profile,
-                        config     = config,
-                        encryption = encryption)
+  frame <- create_frame(stack        = stack,
+                        handler      = handler,
+                        protocol     = protocol,
+                        profile      = profile,
+                        config       = config,
+                        encryption   = encryption,
+                        check_access = FALSE)
   frame <- commit(frame, obj, descripton, params)
   return(push(frame))
 }
 
 stack_path <- function(frame) {
-  return(paste(frame$user, frame$stack, sep="/"))
+  return(if (startsWith(frame$stack, "/")) substring(frame$stack, 2) else paste(frame$user, frame$stack, sep="/"))
 }
 
 new_frame <- function (frame) {

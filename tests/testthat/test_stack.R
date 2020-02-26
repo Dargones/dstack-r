@@ -25,7 +25,7 @@ library(ggplot2)
                       protocol = .setup_protocol()))
 }
 
-test_that("create_frame() must call send_access()", {
+test_that("create_frame() must call send_access() by default", {
   f <- .setup_frame("myplots/test_plot")
   expect_equal(.result$endpoint, "/stacks/access")
 })
@@ -47,11 +47,27 @@ test_that("test commit and push", {
 
 test_that("test access denied", {
   tryCatch({
-  f <- .setup_frame("myplots/test_plot", token = "invalid token")
-  fail()
+    f <- .setup_frame("myplots/test_plot", token = "invalid token")
+    fail()
   },
   error = function (cond) {
     expect_equal(geterrmessage(), "Forbidden")
   })
+})
+
+test_that("test relative stack path", {
+  f <- .setup_frame("myplots/test_plot")
+  image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
+  f <- commit(f, image)
+  push(f)
+  expect_equal(.result$data$stack, "test_user/myplots/test_plot")
+})
+
+test_that("test absolute stack path", {
+  f <- .setup_frame("/user/myplots/test_plot")
+  image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
+  f <- commit(f, image)
+  push(f)
+    expect_equal(.result$data$stack, "user/myplots/test_plot")
 })
 
