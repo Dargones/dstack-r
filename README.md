@@ -11,7 +11,11 @@ or
 ```bash
 conda install -c dstack.ai dstack
 ```
-Note, if you use **pip**, it is highly recommended to use **virtualenv** to manage local environment. 
+Note, if you use **pip**, it is highly recommended to use **virtualenv** to manage local environment.
+Of course you need to install R package too:
+```R
+install.packages("dstack")
+```
 
 ## Configuration
 
@@ -24,10 +28,13 @@ Configuring a **dstack profile** can be done by the following command:
 ```bash
 dstack config --token <TOKEN> --user <USER>
 ```
-
+or simply
+```bash
+dstack config
+```
 In this case, the **dstack profile** name will be `default`. You can change it by including `--profile <PROFILE NAME>` in your command. This allows you to configure multiple profiles and refer to them from your code by their names.
 
-By default, the configuration profile is stored locally, i.e. in your working directory: `<WORKING DIRECTORY>/.dstack/config.yaml`
+By default, the configuration profile is stored locally, i.e. in your working directory: `<WORKING_DIRECTORY>/.dstack/config.yaml`
 
 See [CLI Reference](https://docs.dstack.ai/cli-reference) to more information about command line tools or type `dstack config --help`.
 
