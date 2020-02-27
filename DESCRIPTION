@@ -1,13 +1,12 @@
 Package: dstack
 Type: Package
-Title: Publish interactive plots to dstack.ai
+Title: An open-source library to publish plots
 Version: 0.1.0
 Author: swordhands
 Maintainer: dstack.ai <team@dstack.ai>
 Description: dstack.ai is a service to publish, share and track revisions of interactive plots.
-    This package allows to publish ggplot2 charts in dstack.ai easily and make them interactive if it's necessary
-    by precalculating plots and pushing them to certain stack with specified plot parameters. Which parameters
-    will be shown as UI controls to switch one plot to another.
+    This package allows to publish ggplot2 charts easily and make them interactive if it's necessary
+    by precalculating plots and pushing them to certain stack with specified plot parameters.
 License: Apache 2.0
 Encoding: UTF-8
 LazyData: true

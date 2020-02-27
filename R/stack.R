@@ -28,6 +28,10 @@ version <- "0.1.0"
 #'
 #' \code{$ pip install dstack}
 #'
+#'or
+#'
+#' \code{$ conda install -c dstack.ai dstack}
+#'
 #' We recommend to use local (virtual) environment to install the package.
 #' You can use this command in console:
 #'
@@ -45,7 +49,7 @@ version <- "0.1.0"
 #' from command line, make sure that you have already obtained token from the site.
 #' @param auto_push Tells the system to push frame just after commit.
 #' It may be useful if you want to see result immediately. Default is \code{FALSE}.
-#' @param protocol Protocol to use, usually it is \code{NULL} this means to use \code{json_protocol} here.
+#' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
 #' @param config A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.
 #' @param encryption This is a ecryption method. By default \code{no_encryption} will be used.
 #' @param check_access Check access to specified stack, default is \code{TRUE}.
