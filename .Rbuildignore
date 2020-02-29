@@ -1,0 +1,5 @@
+^.*\.Rproj$
+^.*\.idea$
+^.*\.git$
+^\.Rproj\.user$
+^LICENSE\.md$
