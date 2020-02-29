@@ -14,12 +14,12 @@ library(rlist)
 
 version <- "0.1.0"
 
-#' Create a new frame in stack
+#' Create a new frame in stack.
 #'
 #' @param stack A name of stack to use.
+#' @param profile A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
 #' @param handler A handler which can be specified in the case of custom content,
 #' but by default it is \code{json_handler}.
-#' @param profile A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
 #' The system is looking for specified profile as follows:
 #' it looks into working directory to find a configuration file (local configuration),
 #' if the file doesn't exist it looks into user directory to find it (global configuration).
@@ -55,15 +55,17 @@ version <- "0.1.0"
 #' @param check_access Check access to specified stack, default is \code{TRUE}.
 #' @return New frame.
 #' @examples
+#' \dontrun{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' frame <- create_frame(stack = "diamonds")
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
+#' }
 create_frame <- function (stack,
-                          handler      = ggplot_handler(),
                           profile      = "default",
+                          handler      = ggplot_handler(),
                           auto_push    = FALSE,
                           protocol     = NULL,
                           config       = yaml_config(),
@@ -97,12 +99,14 @@ create_frame <- function (stack,
 #' @param params Parameters associated with this data, e.g. plot settings.
 #' @return Changed frame.
 #' @examples
+#' \dontrun{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' frame <- create_frame(stack = "diamonds")
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
+#' }
 commit <- function (frame, obj, description=NULL, params=NULL) {
   data <- frame$handler$as_frame(obj, description, params)
   encrypted_data <- frame$encryption(data)
@@ -128,12 +132,14 @@ push_data <- function (frame, data) {
 #' @param frame A frame to push.
 #' @return Stack URL.
 #' @examples
+#' \dontrun{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' frame <- create_frame(stack = "diamonds")
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
+#' }
 push <- function (frame) {
   f <- new_frame(frame)
   if (frame$auto_push == FALSE) {
@@ -146,23 +152,27 @@ push <- function (frame) {
 
 #' Creates frame in the stack, commits and pushes data in a single operation.
 #'         stack: A stack you want to commit and push to.
-#' @param obj: Object to commit and push, e.g. plot.
-#' @param description: Optional description of the object.
-#' @param params: Optional parameters.
-#' @param handler: Specify handler to handle the object, if it's None then \code{ggplot_handler} will be used.
-#' @param profile: Profile you want to use, i.e. username and token. Default profile is 'default'.
-#' @param config: Configuration to manage profiles. If it is unspecified \code{yaml_config} will be used.
-#' @param encryption: Encryption method by default \code{no_encryption} will be used.
+#' @param stack A name of stack to use.
+#' @param obj Object to commit and push, e.g. plot.
+#' @param description Optional description of the object.
+#' @param params Optional parameters.
+#' @param profile Profile you want to use, i.e. username and token. Default profile is 'default'.
+#' @param handler Specify handler to handle the object, if it's None then \code{ggplot_handler} will be used.
+#' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
+#' @param config Configuration to manage profiles. If it is unspecified \code{yaml_config} will be used.
+#' @param encryption Encryption method by default \code{no_encryption} will be used.
 #' @return Stack URL.
 #' @examples
+#' \dontrun{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' push_frame("diamonds", image, "Diamonds bar chart")
-push_frame <- function (stack, obj, descripton = NULL, params = NULL,
+#' }
+push_frame <- function (stack, obj, description = NULL, params = NULL,
+                        profile    = "default",
                         handler    = ggplot_handler(),
                         protocol   = NULL,
-                        profile    = "default",
                         config     = yaml_config(),
                         encryption = no_encryption) {
   frame <- create_frame(stack        = stack,
@@ -172,7 +182,7 @@ push_frame <- function (stack, obj, descripton = NULL, params = NULL,
                         config       = config,
                         encryption   = encryption,
                         check_access = FALSE)
-  frame <- commit(frame, obj, descripton, params)
+  frame <- commit(frame, obj, description, params)
   return(push(frame))
 }
 
@@ -202,6 +212,10 @@ send_push <- function (frame, f) {
   return(res)
 }
 
+#' JSON protocol implementation to connect dstack.ai API server.
+#'
+#' @param server A server to connect.
+#' @param error An error handling function.
 json_protocol <- function (server, error = .error) {
   return(function (endpoint, data) {
     auth <- paste0("Bearer ", data$token)
