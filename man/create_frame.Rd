@@ -2,7 +2,7 @@
 % Please edit documentation in R/stack.R
 \name{create_frame}
 \alias{create_frame}
-\title{Create a new frame in stack.}
+\title{Create a New Frame in Stack}
 \usage{
 create_frame(
   stack,
@@ -11,7 +11,7 @@ create_frame(
   auto_push = FALSE,
   protocol = NULL,
   config = yaml_config(),
-  encryption = no_encryption,
+  encryption = NULL,
   check_access = TRUE
 )
 }
@@ -47,7 +47,7 @@ or simply
 
 \code{$ dstack config}
 
-if <PROFILE> is not specified 'default' profile will be created. The system asks you about token
+if profile is not specified 'default' profile will be created. The system asks you about token
 from command line, make sure that you have already obtained token from the site.}
 
 \item{auto_push}{Tells the system to push frame just after commit.
@@ -57,7 +57,7 @@ It may be useful if you want to see result immediately. Default is \code{FALSE}.
 
 \item{config}{A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.}
 
-\item{encryption}{This is a ecryption method. By default \code{no_encryption} will be used.}
+\item{encryption}{This is a ecryption method. By default is \code{NULL} and no encryption will be used.}
 
 \item{check_access}{Check access to specified stack, default is \code{TRUE}.}
 }
@@ -65,10 +65,12 @@ It may be useful if you want to see result immediately. Default is \code{FALSE}.
 New frame.
 }
 \description{
-Create a new frame in stack.
+Frame is kind of revision of data user is going to publish. It consists of one or more views. Views are usually plots
+with some parameters to distinguish one plot from another. This function creates a frame and by default it checks
+permission to publish to this stack.
 }
 \examples{
-\dontrun{
+\donttest{
 library(ggplot2)
 library(dstack)
 image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")

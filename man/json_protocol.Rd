@@ -2,7 +2,7 @@
 % Please edit documentation in R/stack.R
 \name{json_protocol}
 \alias{json_protocol}
-\title{JSON protocol implementation to connect dstack.ai API server.}
+\title{JSON Protocol Implementation to Connect API Server}
 \usage{
 json_protocol(server, error = .error)
 }
@@ -11,6 +11,11 @@ json_protocol(server, error = .error)
 
 \item{error}{An error handling function.}
 }
+\value{
+A function that implements JSON protocol.
+}
 \description{
-JSON protocol implementation to connect dstack.ai API server.
+Protocol is an abstraction which allows to send data to server.
+This function implements JSON-based protocol. It provides token in
+'Authorization' header.
 }

@@ -1,11 +1,12 @@
 library(yaml)
 
-#' YAML-based configuration.
+#' YAML-based Configuration
 #'
 #' It tries to find YAML file in working directory looking for \code{.dstack/config.yaml} by default.
 #' If it's failed it tries to use global setting in home directory in the same relative path.
 #'
 #' @param dstack_dir Directory which contains config.yaml, locally or globally, by default it is \code{.dstack}.
+#' @return A function that returns a list that contains user, token and server for specified profile.
 yaml_config <- function (dstack_dir = ".dstack") {
   path <- paste0(dstack_dir, "/", "config.yaml")
   if (!file.exists(path)) path <- paste0(.home(), "/", path)

@@ -2,8 +2,7 @@
 % Please edit documentation in R/stack.R
 \name{push}
 \alias{push}
-\title{Pushes all commits to server. In the case of auto_push mode it sends only a total number
-of elements in the frame. So call this method is obligatory to close frame anyway.}
+\title{Pushes All Commits to Server}
 \usage{
 push(frame)
 }
@@ -14,11 +13,12 @@ push(frame)
 Stack URL.
 }
 \description{
-Pushes all commits to server. In the case of auto_push mode it sends only a total number
-of elements in the frame. So call this method is obligatory to close frame anyway.
+Tis function is used to send a banch of commited plots to server or say server that operation with this frame is done.
+In the case of 'auto_push' mode it sends only a total number
+of views in the frame. So call this method is obligatory to close the frame anyway.
 }
 \examples{
-\dontrun{
+\donttest{
 library(ggplot2)
 library(dstack)
 image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")

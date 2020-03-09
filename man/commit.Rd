@@ -2,7 +2,7 @@
 % Please edit documentation in R/stack.R
 \name{commit}
 \alias{commit}
-\title{Commit data to stack frame.}
+\title{Commit Data to Stack Frame}
 \usage{
 commit(frame, obj, description = NULL, params = NULL)
 }
@@ -22,10 +22,13 @@ case of multiple data objects in the stack frame, e.g. set of plots with setting
 Changed frame.
 }
 \description{
-Commit data to stack frame.
+Function adds a new view to the stack frame.
+Multiple views can be added to one frame, but in this case every plot must be supplied with certain parameters
+to distiguish one view from another. In the case of single plot parameters are not necessary.
+For multiple views parameters will be automaticaly converted to UI controls like sliders and drop down lists.
 }
 \examples{
-\dontrun{
+\donttest{
 library(ggplot2)
 library(dstack)
 image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")

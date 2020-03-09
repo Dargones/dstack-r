@@ -14,7 +14,11 @@ library(rlist)
 
 version <- "0.1.0"
 
-#' Create a new frame in stack.
+#' Create a New Frame in Stack
+#'
+#' Frame is kind of revision of data user is going to publish. It consists of one or more views. Views are usually plots
+#' with some parameters to distinguish one plot from another. This function creates a frame and by default it checks
+#' permission to publish to this stack.
 #'
 #' @param stack A name of stack to use.
 #' @param profile A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
@@ -45,17 +49,17 @@ version <- "0.1.0"
 #'
 #' \code{$ dstack config}
 #'
-#' if <PROFILE> is not specified 'default' profile will be created. The system asks you about token
+#' if profile is not specified 'default' profile will be created. The system asks you about token
 #' from command line, make sure that you have already obtained token from the site.
 #' @param auto_push Tells the system to push frame just after commit.
 #' It may be useful if you want to see result immediately. Default is \code{FALSE}.
 #' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
 #' @param config A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.
-#' @param encryption This is a ecryption method. By default \code{no_encryption} will be used.
+#' @param encryption This is a ecryption method. By default is \code{NULL} and no encryption will be used.
 #' @param check_access Check access to specified stack, default is \code{TRUE}.
 #' @return New frame.
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
@@ -69,8 +73,9 @@ create_frame <- function (stack,
                           auto_push    = FALSE,
                           protocol     = NULL,
                           config       = yaml_config(),
-                          encryption   = no_encryption,
+                          encryption   = NULL,
                           check_access = TRUE) {
+  if (is.null(encryption)) encryption <- .no_encryption
   conf <- config(profile)
   protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
   frame <- list(stack      = stack,
@@ -84,11 +89,16 @@ create_frame <- function (stack,
                 index      = 0)
   frame$id <- UUIDgenerate()
   frame$timestamp <- as.character(as.integer64(as.numeric(Sys.time()) * 1000)) # milliseconds
-  if (check_access) send_access(frame)
+  if (check_access) .send_access(frame)
   return(frame)
 }
 
-#' Commit data to stack frame.
+#' Commit Data to Stack Frame
+#'
+#' Function adds a new view to the stack frame.
+#' Multiple views can be added to one frame, but in this case every plot must be supplied with certain parameters
+#' to distiguish one view from another. In the case of single plot parameters are not necessary.
+#' For multiple views parameters will be automaticaly converted to UI controls like sliders and drop down lists.
 #'
 #' @param frame A frame you want to commit.
 #' @param obj A data to commit. Data will be preprocessed by the handler but dependently on auto_push
@@ -99,7 +109,7 @@ create_frame <- function (stack,
 #' @param params Parameters associated with this data, e.g. plot settings.
 #' @return Changed frame.
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
@@ -108,31 +118,34 @@ create_frame <- function (stack,
 #' print(push(frame)) # print actual stack URL
 #' }
 commit <- function (frame, obj, description=NULL, params=NULL) {
-  data <- frame$handler$as_frame(obj, description, params)
+  data <- frame$handler$to_frame_data(obj, description, params)
   encrypted_data <- frame$encryption(data)
   frame$data <- append(frame$data, list(list.clean(encrypted_data)))
   if (frame$auto_push == TRUE) {
-    frame <- push_data(encrypted_data)
+    frame <- push_data(frame, encrypted_data)
   }
   return(frame)
 }
 
 push_data <- function (frame, data) {
-  f <- new_frame(frame)
+  f <- .new_frame(frame)
   f$index <- frame$index
-  f$attachments[[1]] <- data
+  f$attachments <- list(data)
   frame$index <- frame$index + 1
-  send_push(f)
+  .send_push(frame, f)
   return(frame)
 }
 
-#'Pushes all commits to server. In the case of auto_push mode it sends only a total number
-#'of elements in the frame. So call this method is obligatory to close frame anyway.
+#' Push All Commits to Server
+#'
+#' Tis function is used to send a banch of commited plots to server or say server that operation with this frame is done.
+#' In the case of 'auto_push' mode it sends only a total number
+#' of views in the frame. So call this method is obligatory to close the frame anyway.
 #'
 #' @param frame A frame to push.
 #' @return Stack URL.
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
@@ -141,17 +154,22 @@ push_data <- function (frame, data) {
 #' print(push(frame)) # print actual stack URL
 #' }
 push <- function (frame) {
-  f <- new_frame(frame)
+  f <- .new_frame(frame)
   if (frame$auto_push == FALSE) {
     f$attachments <- frame$data
   } else {
-    f$total <- frame$index
+    f$size <- frame$index
   }
-  return(send_push(frame, f))
+  return(.send_push(frame, f))
 }
 
-#' Creates frame in the stack, commits and pushes data in a single operation.
-#'         stack: A stack you want to commit and push to.
+#' Creates a Frame, Commits and Pushes Data in a Single Operation
+#'
+#' In the case of one plot per push you can use do all operations in one call.
+#' This function creates a frame, commits view and pushes all data to server.
+#' The main difference in behaviour in this case is the function creates frame
+#' without permission check, so be sure that you have certain permission to push in the stack.
+#'
 #' @param stack A name of stack to use.
 #' @param obj Object to commit and push, e.g. plot.
 #' @param description Optional description of the object.
@@ -163,7 +181,7 @@ push <- function (frame) {
 #' @param encryption Encryption method by default \code{no_encryption} will be used.
 #' @return Stack URL.
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(ggplot2)
 #' library(dstack)
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
@@ -174,7 +192,7 @@ push_frame <- function (stack, obj, description = NULL, params = NULL,
                         handler    = ggplot_handler(),
                         protocol   = NULL,
                         config     = yaml_config(),
-                        encryption = no_encryption) {
+                        encryption = .no_encryption) {
   frame <- create_frame(stack        = stack,
                         handler      = handler,
                         protocol     = protocol,
@@ -186,36 +204,40 @@ push_frame <- function (stack, obj, description = NULL, params = NULL,
   return(push(frame))
 }
 
-stack_path <- function(frame) {
+.stack_path <- function(frame) {
   return(if (startsWith(frame$stack, "/")) substring(frame$stack, 2) else paste(frame$user, frame$stack, sep="/"))
 }
 
-new_frame <- function (frame) {
-  return(list(stack     = stack_path(frame),
+.new_frame <- function (frame) {
+  return(list(stack     = .stack_path(frame),
               token     = frame$token,
               id        = frame$id,
               timestamp = frame$timestamp,
               type      = frame$handler$type,
               client    = "dstack-r",
               version   = version,
-              os        = get_os_info()))
+              os        = .get_os_info()))
 }
 
-send_access <- function (frame) {
-  req <- list(stack = stack_path(frame), token = frame$token)
+.send_access <- function (frame) {
+  req <- list(stack = .stack_path(frame), token = frame$token)
   res <- frame$protocol("/stacks/access", req)
   return(res)
 }
 
-send_push <- function (frame, f) {
+.send_push <- function (frame, f) {
   res <- frame$protocol("/stacks/push", f)
   return(res)
 }
 
-#' JSON protocol implementation to connect dstack.ai API server.
+#' JSON Protocol Implementation to Connect API Server
 #'
+#' Protocol is an abstraction which allows to send data to server.
+#' This function implements JSON-based protocol. It provides token in
+#' 'Authorization' header.
 #' @param server A server to connect.
 #' @param error An error handling function.
+#' @return A function that implements JSON protocol.
 json_protocol <- function (server, error = .error) {
   return(function (endpoint, data) {
     auth <- paste0("Bearer ", data$token)
@@ -229,11 +251,11 @@ json_protocol <- function (server, error = .error) {
   })
 }
 
-no_encryption <- function (data) {
+.no_encryption <- function (data) {
   return(data)
 }
 
-get_os_info <- function() {
+.get_os_info <- function() {
   info <- Sys.info()
   return(list(sysname=info["sysname"], release=info["release"], version=info["version"], machine=info["machine"]))
 }

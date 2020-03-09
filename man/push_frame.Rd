@@ -2,8 +2,7 @@
 % Please edit documentation in R/stack.R
 \name{push_frame}
 \alias{push_frame}
-\title{Creates frame in the stack, commits and pushes data in a single operation.
-        stack: A stack you want to commit and push to.}
+\title{Creates a Frame, Commits and Pushes Data in a Single Operation}
 \usage{
 push_frame(
   stack,
@@ -14,7 +13,7 @@ push_frame(
   handler = ggplot_handler(),
   protocol = NULL,
   config = yaml_config(),
-  encryption = no_encryption
+  encryption = .no_encryption
 )
 }
 \arguments{
@@ -40,11 +39,13 @@ push_frame(
 Stack URL.
 }
 \description{
-Creates frame in the stack, commits and pushes data in a single operation.
-        stack: A stack you want to commit and push to.
+In the case of one plot per push you can use do all operations in one call.
+This function creates a frame, commits view and pushes all data to server.
+The main difference in behaviour in this case is the function creates frame
+without permission check, so be sure that you have certain permission to push in the stack.
 }
 \examples{
-\dontrun{
+\donttest{
 library(ggplot2)
 library(dstack)
 image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")

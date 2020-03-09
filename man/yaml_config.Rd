@@ -2,12 +2,15 @@
 % Please edit documentation in R/config.R
 \name{yaml_config}
 \alias{yaml_config}
-\title{YAML-based configuration.}
+\title{YAML-based Configuration}
 \usage{
 yaml_config(dstack_dir = ".dstack")
 }
 \arguments{
 \item{dstack_dir}{Directory which contains config.yaml, locally or globally, by default it is \code{.dstack}.}
+}
+\value{
+A function that returns a list that contains user, token and server for specified profile.
 }
 \description{
 It tries to find YAML file in working directory looking for \code{.dstack/config.yaml} by default.

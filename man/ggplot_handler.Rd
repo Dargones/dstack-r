@@ -2,7 +2,7 @@
 % Please edit documentation in R/ggplot.R
 \name{ggplot_handler}
 \alias{ggplot_handler}
-\title{Handles ggplot2 objects.}
+\title{Handles 'ggplot2' Objects}
 \usage{
 ggplot_handler(dpi = 300, width = NA, height = NA, format = "png")
 }
@@ -15,6 +15,9 @@ ggplot_handler(dpi = 300, width = NA, height = NA, format = "png")
 
 \item{format}{Image format to use, can be "png" or "svg", by default PNG will be used.}
 }
+\value{
+A list which contains conversion function and format inself.
+}
 \description{
-Handles ggplot2 objects.
+Returns a function that converts 'ggplot2' plots to appropriate format and format itself. PNG and SVG are supported.
 }
