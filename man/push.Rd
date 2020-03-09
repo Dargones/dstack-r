@@ -2,7 +2,7 @@
 % Please edit documentation in R/stack.R
 \name{push}
 \alias{push}
-\title{Pushes All Commits to Server}
+\title{Push All Commits to Server}
 \usage{
 push(frame)
 }
