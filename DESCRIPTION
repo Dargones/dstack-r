@@ -2,8 +2,8 @@ Package: dstack
 Type: Package
 Title: An Open-Source Library to Publish Plots
 Version: 0.1.0
-Author: swordhands
-Maintainer: dstack.ai <team@dstack.ai>
+Authors@R: person("Vitaly", "Khudobakhshov", email = "vitaly@dstack.ai",
+  role = c("aut", "cre"))
 Description: A native R library that allows to publish, share and track revisions 
   of plots using your favorite plotting library, e.g. 'ggplot2'. It also provides
   a kind of interactivity for such plots by specifying certain parameters for any 
