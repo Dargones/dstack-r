@@ -6,6 +6,7 @@ export(push)
 export(yaml_config)
 export(ggplot_handler)
 export(json_protocol)
+export(plotly_handler)
 
 import(uuid)
 import(nanotime)
