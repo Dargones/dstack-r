@@ -69,7 +69,7 @@ create_frame <- function (stack,
                           profile      = "default",
                           auto_push    = FALSE,
                           protocol     = NULL,
-                          config       = yaml_config(),
+                          config       = get_config(),
                           encryption   = NULL,
                           check_access = TRUE) {
   if (is.null(encryption)) encryption <- .no_encryption
@@ -189,7 +189,7 @@ push_frame <- function (stack, obj, description = NULL, params = NULL,
                         profile    = "default",
                         handler    = auto_handler(),
                         protocol   = NULL,
-                        config     = yaml_config(),
+                        config     = get_config(),
                         encryption = .no_encryption) {
   frame <- create_frame(stack        = stack,
                         protocol     = protocol,

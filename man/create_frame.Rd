@@ -9,7 +9,7 @@ create_frame(
   profile = "default",
   auto_push = FALSE,
   protocol = NULL,
-  config = yaml_config(),
+  config = get_config(),
   encryption = NULL,
   check_access = TRUE
 )

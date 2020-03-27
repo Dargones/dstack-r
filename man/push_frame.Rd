@@ -12,7 +12,7 @@ push_frame(
   profile = "default",
   handler = auto_handler(),
   protocol = NULL,
-  config = yaml_config(),
+  config = get_config(),
   encryption = .no_encryption
 )
 }
