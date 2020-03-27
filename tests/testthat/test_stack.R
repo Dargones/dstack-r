@@ -21,7 +21,6 @@ library(ggplot2)
 .setup_frame <- function(stack, protocol = .setup_protocol(), token = .valid_token) {
   return(create_frame(stack    = stack,
                       config   = .test_config(token),
-                      handler  = ggplot_handler(),
                       protocol = .setup_protocol()))
 }
 
@@ -36,7 +35,6 @@ test_that("test commit and push", {
   f <- commit(f, image)
   push(f)
   expect_equal(.result$endpoint, "/stacks/push")
-  expect_equal(.result$data$type, "image/png") # default media type
   expect_equal(.result$data$token, "my_token")
   expect_equal(length(.result$data$attachments), 1)
   expect_equal(is.null(.result$data$id), FALSE)

@@ -12,7 +12,7 @@ library(rlist)
   if (http_error(res)) error(http_status(res)$message)
 }
 
-version <- "0.1.0"
+version <- "0.2.0"
 
 #' Create a New Frame in Stack
 #'
@@ -22,8 +22,6 @@ version <- "0.1.0"
 #'
 #' @param stack A name of stack to use.
 #' @param profile A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
-#' @param handler A handler which can be specified in the case of custom content,
-#' but by default it is \code{json_handler}.
 #' The system is looking for specified profile as follows:
 #' it looks into working directory to find a configuration file (local configuration),
 #' if the file doesn't exist it looks into user directory to find it (global configuration).
@@ -69,7 +67,6 @@ version <- "0.1.0"
 #' }
 create_frame <- function (stack,
                           profile      = "default",
-                          handler      = ggplot_handler(),
                           auto_push    = FALSE,
                           protocol     = NULL,
                           config       = yaml_config(),
@@ -81,7 +78,6 @@ create_frame <- function (stack,
   frame <- list(stack      = stack,
                 user       = conf$user,
                 token      = conf$token,
-                handler    = handler,
                 auto_push  = auto_push,
                 protocol   = protocol,
                 encryption = encryption,
@@ -107,6 +103,8 @@ create_frame <- function (stack,
 #' case of multiple data objects in the stack frame, e.g. set of plots with settings.
 #' @param description Description of the data.
 #' @param params Parameters associated with this data, e.g. plot settings.
+#' @param handler A handler which can be specified in the case of custom content,
+#' but by default it is \code{auto_handler}.
 #' @return Changed frame.
 #' @examples
 #' \donttest{
@@ -117,8 +115,8 @@ create_frame <- function (stack,
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-commit <- function (frame, obj, description=NULL, params=NULL) {
-  data <- frame$handler$to_frame_data(obj, description, params)
+commit <- function (frame, obj, description = NULL, params = NULL, handler = auto_handler()) {
+  data <- handler(obj, description, params)
   encrypted_data <- frame$encryption(data)
   frame$data <- append(frame$data, list(list.clean(encrypted_data)))
   if (frame$auto_push == TRUE) {
@@ -175,7 +173,7 @@ push <- function (frame) {
 #' @param description Optional description of the object.
 #' @param params Optional parameters.
 #' @param profile Profile you want to use, i.e. username and token. Default profile is 'default'.
-#' @param handler Specify handler to handle the object, if it's None then \code{ggplot_handler} will be used.
+#' @param handler Specify handler to handle the object, if it's None then \code{auto_handler} will be used.
 #' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
 #' @param config Configuration to manage profiles. If it is unspecified \code{yaml_config} will be used.
 #' @param encryption Encryption method by default \code{no_encryption} will be used.
@@ -189,18 +187,17 @@ push <- function (frame) {
 #' }
 push_frame <- function (stack, obj, description = NULL, params = NULL,
                         profile    = "default",
-                        handler    = ggplot_handler(),
+                        handler    = auto_handler(),
                         protocol   = NULL,
                         config     = yaml_config(),
                         encryption = .no_encryption) {
   frame <- create_frame(stack        = stack,
-                        handler      = handler,
                         protocol     = protocol,
                         profile      = profile,
                         config       = config,
                         encryption   = encryption,
                         check_access = FALSE)
-  frame <- commit(frame, obj, description, params)
+  frame <- commit(frame, obj, description, params, handler)
   return(push(frame))
 }
 
@@ -213,7 +210,6 @@ push_frame <- function (stack, obj, description = NULL, params = NULL,
               token     = frame$token,
               id        = frame$id,
               timestamp = frame$timestamp,
-              type      = frame$handler$type,
               client    = "dstack-r",
               version   = version,
               os        = .get_os_info()))

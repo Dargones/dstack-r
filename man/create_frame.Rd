@@ -7,7 +7,6 @@
 create_frame(
   stack,
   profile = "default",
-  handler = ggplot_handler(),
   auto_push = FALSE,
   protocol = NULL,
   config = yaml_config(),
@@ -18,10 +17,7 @@ create_frame(
 \arguments{
 \item{stack}{A name of stack to use.}
 
-\item{profile}{A profile refers to credentials, i.e. username and token. Default profile is named 'default'.}
-
-\item{handler}{A handler which can be specified in the case of custom content,
-but by default it is \code{json_handler}.
+\item{profile}{A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
 The system is looking for specified profile as follows:
 it looks into working directory to find a configuration file (local configuration),
 if the file doesn't exist it looks into user directory to find it (global configuration).

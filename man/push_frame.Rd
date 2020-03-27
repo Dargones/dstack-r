@@ -10,7 +10,7 @@ push_frame(
   description = NULL,
   params = NULL,
   profile = "default",
-  handler = ggplot_handler(),
+  handler = auto_handler(),
   protocol = NULL,
   config = yaml_config(),
   encryption = .no_encryption
@@ -27,7 +27,7 @@ push_frame(
 
 \item{profile}{Profile you want to use, i.e. username and token. Default profile is 'default'.}
 
-\item{handler}{Specify handler to handle the object, if it's None then \code{ggplot_handler} will be used.}
+\item{handler}{Specify handler to handle the object, if it's None then \code{auto_handler} will be used.}
 
 \item{protocol}{Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.}
 
