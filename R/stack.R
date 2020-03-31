@@ -4,11 +4,11 @@ library(rjson)
 library(httr)
 library(rlist)
 
-.error <- function (message) {
+.error <- function(message) {
   stop(message)
 }
 
-.check <- function (res, error) {
+.check <- function(res, error) {
   if (http_error(res)) error(http_status(res)$message)
 }
 
@@ -65,24 +65,24 @@ version <- "0.2.0"
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-create_frame <- function (stack,
-                          profile      = "default",
-                          auto_push    = FALSE,
-                          protocol     = NULL,
-                          config       = get_config(),
-                          encryption   = NULL,
-                          check_access = TRUE) {
+create_frame <- function(stack,
+                         profile = "default",
+                         auto_push = FALSE,
+                         protocol = NULL,
+                         config = get_config(),
+                         encryption = NULL,
+                         check_access = TRUE) {
   if (is.null(encryption)) encryption <- .no_encryption
   conf <- config(profile)
   protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
-  frame <- list(stack      = stack,
-                user       = conf$user,
-                token      = conf$token,
-                auto_push  = auto_push,
-                protocol   = protocol,
+  frame <- list(stack = stack,
+                user = conf$user,
+                token = conf$token,
+                auto_push = auto_push,
+                protocol = protocol,
                 encryption = encryption,
-                data       = list(),
-                index      = 0)
+                data = list(),
+                index = 0)
   frame$id <- UUIDgenerate()
   frame$timestamp <- as.character(as.integer64(as.numeric(Sys.time()) * 1000)) # milliseconds
   if (check_access) .send_access(frame)
@@ -115,7 +115,7 @@ create_frame <- function (stack,
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-commit <- function (frame, obj, description = NULL, params = NULL, handler = auto_handler()) {
+commit <- function(frame, obj, description = NULL, params = NULL, handler = auto_handler()) {
   data <- handler(obj, description, params)
   encrypted_data <- frame$encryption(data)
   frame$data <- append(frame$data, list(list.clean(encrypted_data)))
@@ -125,7 +125,7 @@ commit <- function (frame, obj, description = NULL, params = NULL, handler = aut
   return(frame)
 }
 
-push_data <- function (frame, data) {
+push_data <- function(frame, data) {
   f <- .new_frame(frame)
   f$index <- frame$index
   f$attachments <- list(data)
@@ -151,7 +151,7 @@ push_data <- function (frame, data) {
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-push <- function (frame) {
+push <- function(frame) {
   f <- .new_frame(frame)
   if (frame$auto_push == FALSE) {
     f$attachments <- frame$data
@@ -185,43 +185,43 @@ push <- function (frame) {
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' push_frame("diamonds", image, "Diamonds bar chart")
 #' }
-push_frame <- function (stack, obj, description = NULL, params = NULL,
-                        profile    = "default",
-                        handler    = auto_handler(),
-                        protocol   = NULL,
-                        config     = get_config(),
-                        encryption = .no_encryption) {
-  frame <- create_frame(stack        = stack,
-                        protocol     = protocol,
-                        profile      = profile,
-                        config       = config,
-                        encryption   = encryption,
+push_frame <- function(stack, obj, description = NULL, params = NULL,
+                       profile = "default",
+                       handler = auto_handler(),
+                       protocol = NULL,
+                       config = get_config(),
+                       encryption = .no_encryption) {
+  frame <- create_frame(stack = stack,
+                        protocol = protocol,
+                        profile = profile,
+                        config = config,
+                        encryption = encryption,
                         check_access = FALSE)
   frame <- commit(frame, obj, description, params, handler)
   return(push(frame))
 }
 
 .stack_path <- function(frame) {
-  return(if (startsWith(frame$stack, "/")) substring(frame$stack, 2) else paste(frame$user, frame$stack, sep="/"))
+  return(if (startsWith(frame$stack, "/")) substring(frame$stack, 2) else paste(frame$user, frame$stack, sep = "/"))
 }
 
-.new_frame <- function (frame) {
-  return(list(stack     = .stack_path(frame),
-              token     = frame$token,
-              id        = frame$id,
+.new_frame <- function(frame) {
+  return(list(stack = .stack_path(frame),
+              token = frame$token,
+              id = frame$id,
               timestamp = frame$timestamp,
-              client    = "dstack-r",
-              version   = version,
-              os        = .get_os_info()))
+              client = "dstack-r",
+              version = version,
+              os = .get_os_info()))
 }
 
-.send_access <- function (frame) {
+.send_access <- function(frame) {
   req <- list(stack = .stack_path(frame), token = frame$token)
   res <- frame$protocol("/stacks/access", req)
   return(res)
 }
 
-.send_push <- function (frame, f) {
+.send_push <- function(frame, f) {
   res <- frame$protocol("/stacks/push", f)
   return(res)
 }
@@ -234,24 +234,48 @@ push_frame <- function (stack, obj, description = NULL, params = NULL,
 #' @param server A server to connect.
 #' @param error An error handling function.
 #' @return A function that implements JSON protocol.
-json_protocol <- function (server, error = .error) {
-  return(function (endpoint, data) {
+json_protocol <- function(server, error = .error) {
+  return(function(endpoint, data) {
     auth <- paste0("Bearer ", data$token)
+
+    .do_request <- function(server, endpoint, body, error) {
+      # r <- with_config(verbose(), POST(paste0(server, endpoint),
+      r <- POST(paste0(server, endpoint),
+                body = body, encode = "json",
+                add_headers(.headers = c("Authorization" = auth)))
+      .check(r, error)
+      return(content(r, "parsed"))
+    }
+
+    .do_upload <- function(upload_url, data) {
+      r <- PUT(url = upload_url, body = data)
+      return(r)
+    }
+
     body <- list.remove(data, "token")
-    # r <- with_config(verbose(), POST(paste0(server, endpoint),
-    r <- POST(paste0(server, endpoint),
-              body = body, encode = "json",
-              add_headers(.headers = c("Authorization"=auth)))
-    .check(r, error)
-    return(content(r, "parsed"))
+    if (object.size(body) < 1000) return(.do_request(server, endpoint, body, error))
+    else {
+      content <- list()
+      for (index in seq_along(body$attachments)) {
+        data <- body$attachments[[index]]$data
+        body$attachments[[index]]$data <- NULL
+        content <- list.append(content, base64enc::base64decode(data))
+        body$attachments[[index]]$length = length(content[[index]])
+      }
+      res <- .do_request(server, endpoint, body, error)
+      for (attach in res$attachments) {
+        .do_upload(attach$upload_url, content[[attach$index + 1]])
+      }
+      return(res)
+    }
   })
 }
 
-.no_encryption <- function (data) {
+.no_encryption <- function(data) {
   return(data)
 }
 
 .get_os_info <- function() {
   info <- Sys.info()
-  return(list(sysname=info["sysname"], release=info["release"], version=info["version"], machine=info["machine"]))
+  return(list(sysname = info["sysname"], release = info["release"], version = info["version"], machine = info["machine"]))
 }
