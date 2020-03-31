@@ -253,7 +253,7 @@ json_protocol <- function(server, error = .error) {
     }
 
     body <- list.remove(data, "token")
-    if (object.size(body) < 1000) return(.do_request(server, endpoint, body, error))
+    if (object.size(body) < 10000000) return(.do_request(server, endpoint, body, error))
     else {
       content <- list()
       for (index in seq_along(body$attachments)) {
