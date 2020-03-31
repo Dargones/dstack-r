@@ -10,6 +10,7 @@ export(dataframe_handler)
 export(datatable_handler)
 export(auto_handler)
 export(configure)
+export(pull)
 
 import(uuid)
 import(nanotime)
