@@ -286,18 +286,27 @@ pull <- function(stack, profile = "default", error = .error, ...) {
   params <- list(...)
   auth <- paste0("Bearer ", profile$token)
   url <- paste(profile$server, "stacks", profile$user, stack, sep = "/")
-  r <- with_config(verbose(), GET(url = url, encode = "json", add_headers(.headers = c("Authorization" = auth))))
+  r <- GET(url = url, encode = "json", add_headers(.headers = c("Authorization" = auth)))
   .check(r, error)
   res <- content(r, "parsed")
   for(index in seq_along(res$stack$head$attachments)) {
     attach <- res$stack$head$attachments[[index]]
-    if (length(intersect(attach$params, params)) == length(params)) {
+    if (length(intersect(attach$params, params)) == length(attach$params)) {
       frame <- res$stack$head$id
-      download_url <- paste(profile$server, "attachs", profile$user, stack, frame, index - 1, sep = "/")
-      r <- GET(url = download_url, add_headers(.headers = c("Authorization" = auth)))
+      attach_url <- paste(profile$server, "attachs", profile$user, stack, frame, index - 1, sep = "/")
+      attach_url <- paste0(attach_url, "?download=true")
+      r <- GET(url = attach_url, add_headers(.headers = c("Authorization" = auth)))
       .check(r, error)
       res <- content(r, "parsed")
-      return(textConnection(rawToChar(base64enc::base64decode(res$attachment$data))))
+      if (is.null(res$attachment$data)) {
+        file <- tempfile()
+        download.file(url = res$attachment$download_url, file, quiet=TRUE)
+        return(file)
+      } else {
+        file <- textConnection(rawToChar(base64enc::base64decode(res$attachment$data)))
+        return(file)
+      }
     }
   }
+  return(pulled)
 }

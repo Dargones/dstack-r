@@ -3,8 +3,8 @@ auto_handler <- function(use_plotly_instead_of_ggplot = TRUE) {
   map <- list(
     list(name = "ggplot2", accept = is.ggplot2, handler = gg_handler()),
     list(name = "plotly", accept = is.plotly, handler = plotly_handler()),
-    list(name = "data.frame", accept = is.data.frame, handler = dataframe_handler()),
-    list(name = "data.table", accept = is.datatable, handler = datatable_handler())
+    list(name = "data.table", accept = is.datatable, handler = datatable_handler()),
+    list(name = "data.frame", accept = is.data.frame, handler = dataframe_handler())
   )
   return(function (obj, description, params) {
     for (h in map) {
