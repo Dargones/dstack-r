@@ -4,10 +4,12 @@
 \alias{push}
 \title{Push All Commits to Server}
 \usage{
-push(frame)
+push(frame, message = NULL)
 }
 \arguments{
 \item{frame}{A frame to push.}
+
+\item{message}{Push message. \code{NULL} by default.}
 }
 \value{
 Stack URL.

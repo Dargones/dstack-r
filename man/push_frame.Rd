@@ -9,11 +9,12 @@ push_frame(
   obj,
   description = NULL,
   params = NULL,
+  message = NULL,
   profile = "default",
-  handler = ggplot_handler(),
+  handler = auto_handler(),
   protocol = NULL,
-  config = yaml_config(),
-  encryption = .no_encryption
+  encryption = .no_encryption,
+  ...
 )
 }
 \arguments{
@@ -25,15 +26,17 @@ push_frame(
 
 \item{params}{Optional parameters.}
 
+\item{message}{Push message. \code{NULL} by default.}
+
 \item{profile}{Profile you want to use, i.e. username and token. Default profile is 'default'.}
 
-\item{handler}{Specify handler to handle the object, if it's None then \code{ggplot_handler} will be used.}
+\item{handler}{Specify handler to handle the object, if it's None then \code{auto_handler} will be used.}
 
 \item{protocol}{Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.}
 
-\item{config}{Configuration to manage profiles. If it is unspecified \code{yaml_config} will be used.}
-
 \item{encryption}{Encryption method by default \code{no_encryption} will be used.}
+
+\item{...}{Optional parameters is an alternative to \code{params}. If both are present this one will be merged into params.}
 }
 \value{
 Stack URL.

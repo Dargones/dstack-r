@@ -9,7 +9,7 @@ library(base64enc)
 #' @param format Image format to use, can be "png" or "svg", by default PNG will be used.
 #' @return A list which contains conversion function and format inself.
 ggplot_handler <- function(dpi = 300, width = NA, height = NA, format = "png") {
-  to_frame_data <- function (plot, description, params) {
+  return(function (plot, description, params) {
     filename <- paste0(tempdir(), "/test.", format)
     ggplot2::ggsave(file = filename, plot = plot, width = width, height = height, dpi = dpi)
     f <- file(filename, "rb")
@@ -17,8 +17,6 @@ ggplot_handler <- function(dpi = 300, width = NA, height = NA, format = "png") {
     buf <- readBin(f, raw(), n = size)
     close(f)
     file.remove(filename)
-    return(list(data = base64encode(buf), description = description, params = params))
-  }
-
-  return(list(to_frame_data = to_frame_data, type = paste0("image/", format)))
+    return(list(data = base64encode(buf), type = paste0("image/", format), description = description, params = params))
+  })
 }

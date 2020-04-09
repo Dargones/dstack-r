@@ -7,10 +7,8 @@
 create_frame(
   stack,
   profile = "default",
-  handler = ggplot_handler(),
   auto_push = FALSE,
   protocol = NULL,
-  config = yaml_config(),
   encryption = NULL,
   check_access = TRUE
 )
@@ -18,10 +16,7 @@ create_frame(
 \arguments{
 \item{stack}{A name of stack to use.}
 
-\item{profile}{A profile refers to credentials, i.e. username and token. Default profile is named 'default'.}
-
-\item{handler}{A handler which can be specified in the case of custom content,
-but by default it is \code{json_handler}.
+\item{profile}{A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
 The system is looking for specified profile as follows:
 it looks into working directory to find a configuration file (local configuration),
 if the file doesn't exist it looks into user directory to find it (global configuration).
@@ -54,8 +49,6 @@ from command line, make sure that you have already obtained token from the site.
 It may be useful if you want to see result immediately. Default is \code{FALSE}.}
 
 \item{protocol}{Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.}
-
-\item{config}{A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.}
 
 \item{encryption}{This is a ecryption method. By default is \code{NULL} and no encryption will be used.}
 

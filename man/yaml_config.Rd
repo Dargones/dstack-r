@@ -4,10 +4,7 @@
 \alias{yaml_config}
 \title{YAML-based Configuration}
 \usage{
-yaml_config(dstack_dir = ".dstack")
-}
-\arguments{
-\item{dstack_dir}{Directory which contains config.yaml, locally or globally, by default it is \code{.dstack}.}
+yaml_config()
 }
 \value{
 A function that returns a list that contains user, token and server for specified profile.

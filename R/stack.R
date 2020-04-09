@@ -4,15 +4,15 @@ library(rjson)
 library(httr)
 library(rlist)
 
-.error <- function (message) {
+.error <- function(message) {
   stop(message)
 }
 
-.check <- function (res, error) {
+.check <- function(res, error) {
   if (http_error(res)) error(http_status(res)$message)
 }
 
-version <- "0.1.0"
+version <- "0.2.0"
 
 #' Create a New Frame in Stack
 #'
@@ -22,8 +22,6 @@ version <- "0.1.0"
 #'
 #' @param stack A name of stack to use.
 #' @param profile A profile refers to credentials, i.e. username and token. Default profile is named 'default'.
-#' @param handler A handler which can be specified in the case of custom content,
-#' but by default it is \code{json_handler}.
 #' The system is looking for specified profile as follows:
 #' it looks into working directory to find a configuration file (local configuration),
 #' if the file doesn't exist it looks into user directory to find it (global configuration).
@@ -54,7 +52,6 @@ version <- "0.1.0"
 #' @param auto_push Tells the system to push frame just after commit.
 #' It may be useful if you want to see result immediately. Default is \code{FALSE}.
 #' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
-#' @param config A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.
 #' @param encryption This is a ecryption method. By default is \code{NULL} and no encryption will be used.
 #' @param check_access Check access to specified stack, default is \code{TRUE}.
 #' @return New frame.
@@ -67,26 +64,24 @@ version <- "0.1.0"
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-create_frame <- function (stack,
-                          profile      = "default",
-                          handler      = ggplot_handler(),
-                          auto_push    = FALSE,
-                          protocol     = NULL,
-                          config       = yaml_config(),
-                          encryption   = NULL,
-                          check_access = TRUE) {
+create_frame <- function(stack,
+                         profile = "default",
+                         auto_push = FALSE,
+                         protocol = NULL,
+                         encryption = NULL,
+                         check_access = TRUE) {
+  config <- get_config()$get_profile
   if (is.null(encryption)) encryption <- .no_encryption
   conf <- config(profile)
   protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
-  frame <- list(stack      = stack,
-                user       = conf$user,
-                token      = conf$token,
-                handler    = handler,
-                auto_push  = auto_push,
-                protocol   = protocol,
+  frame <- list(stack = stack,
+                user = conf$user,
+                token = conf$token,
+                auto_push = auto_push,
+                protocol = protocol,
                 encryption = encryption,
-                data       = list(),
-                index      = 0)
+                data = list(),
+                index = 0)
   frame$id <- UUIDgenerate()
   frame$timestamp <- as.character(as.integer64(as.numeric(Sys.time()) * 1000)) # milliseconds
   if (check_access) .send_access(frame)
@@ -107,6 +102,9 @@ create_frame <- function (stack,
 #' case of multiple data objects in the stack frame, e.g. set of plots with settings.
 #' @param description Description of the data.
 #' @param params Parameters associated with this data, e.g. plot settings.
+#' @param handler A handler which can be specified in the case of custom content,
+#' but by default it is \code{auto_handler}.
+#' @param ... Optional parameters is an alternative to \code{params}. If both are present this one will be merged into params.
 #' @return Changed frame.
 #' @examples
 #' \donttest{
@@ -117,8 +115,9 @@ create_frame <- function (stack,
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-commit <- function (frame, obj, description=NULL, params=NULL) {
-  data <- frame$handler$to_frame_data(obj, description, params)
+commit <- function(frame, obj, description = NULL, params = NULL, handler = auto_handler(), ...) {
+  params <- .list_merge(params, list(...))
+  data <- handler(obj, description, params)
   encrypted_data <- frame$encryption(data)
   frame$data <- append(frame$data, list(list.clean(encrypted_data)))
   if (frame$auto_push == TRUE) {
@@ -127,7 +126,7 @@ commit <- function (frame, obj, description=NULL, params=NULL) {
   return(frame)
 }
 
-push_data <- function (frame, data) {
+push_data <- function(frame, data) {
   f <- .new_frame(frame)
   f$index <- frame$index
   f$attachments <- list(data)
@@ -143,6 +142,7 @@ push_data <- function (frame, data) {
 #' of views in the frame. So call this method is obligatory to close the frame anyway.
 #'
 #' @param frame A frame to push.
+#' @param message Push message. \code{NULL} by default.
 #' @return Stack URL.
 #' @examples
 #' \donttest{
@@ -153,8 +153,11 @@ push_data <- function (frame, data) {
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-push <- function (frame) {
+push <- function(frame, message = NULL) {
   f <- .new_frame(frame)
+  if (!is.null(message)) {
+    f$message <- message
+  }
   if (frame$auto_push == FALSE) {
     f$attachments <- frame$data
   } else {
@@ -174,11 +177,12 @@ push <- function (frame) {
 #' @param obj Object to commit and push, e.g. plot.
 #' @param description Optional description of the object.
 #' @param params Optional parameters.
+#' @param message Push message. \code{NULL} by default.
 #' @param profile Profile you want to use, i.e. username and token. Default profile is 'default'.
-#' @param handler Specify handler to handle the object, if it's None then \code{ggplot_handler} will be used.
+#' @param handler Specify handler to handle the object, if it's None then \code{auto_handler} will be used.
 #' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
-#' @param config Configuration to manage profiles. If it is unspecified \code{yaml_config} will be used.
 #' @param encryption Encryption method by default \code{no_encryption} will be used.
+#' @param ... Optional parameters is an alternative to \code{params}. If both are present this one will be merged into params.
 #' @return Stack URL.
 #' @examples
 #' \donttest{
@@ -187,45 +191,43 @@ push <- function (frame) {
 #' image <- qplot(clarity, data = diamonds, fill = cut, geom = "bar")
 #' push_frame("diamonds", image, "Diamonds bar chart")
 #' }
-push_frame <- function (stack, obj, description = NULL, params = NULL,
-                        profile    = "default",
-                        handler    = ggplot_handler(),
-                        protocol   = NULL,
-                        config     = yaml_config(),
-                        encryption = .no_encryption) {
-  frame <- create_frame(stack        = stack,
-                        handler      = handler,
-                        protocol     = protocol,
-                        profile      = profile,
-                        config       = config,
-                        encryption   = encryption,
+push_frame <- function(stack, obj, description = NULL, params = NULL,
+                       message = NULL,
+                       profile = "default",
+                       handler = auto_handler(),
+                       protocol = NULL,
+                       encryption = .no_encryption, ...) {
+  params <- .list_merge(params, list(...))
+  frame <- create_frame(stack = stack,
+                        protocol = protocol,
+                        profile = profile,
+                        encryption = encryption,
                         check_access = FALSE)
-  frame <- commit(frame, obj, description, params)
-  return(push(frame))
+  frame <- commit(frame, obj, description, params, handler)
+  return(push(frame, message))
 }
 
-.stack_path <- function(frame) {
-  return(if (startsWith(frame$stack, "/")) substring(frame$stack, 2) else paste(frame$user, frame$stack, sep="/"))
+.stack_path <- function(user, stack) {
+  return(if (startsWith(stack, "/")) substring(stack, 2) else paste(user, stack, sep = "/"))
 }
 
-.new_frame <- function (frame) {
-  return(list(stack     = .stack_path(frame),
-              token     = frame$token,
-              id        = frame$id,
+.new_frame <- function(frame) {
+  return(list(stack = .stack_path(frame$user, frame$stack),
+              token = frame$token,
+              id = frame$id,
               timestamp = frame$timestamp,
-              type      = frame$handler$type,
-              client    = "dstack-r",
-              version   = version,
-              os        = .get_os_info()))
+              client = "dstack-r",
+              version = version,
+              os = .get_os_info()))
 }
 
-.send_access <- function (frame) {
-  req <- list(stack = .stack_path(frame), token = frame$token)
+.send_access <- function(frame) {
+  req <- list(stack = .stack_path(frame$user, frame$stack), token = frame$token)
   res <- frame$protocol("/stacks/access", req)
   return(res)
 }
 
-.send_push <- function (frame, f) {
+.send_push <- function(frame, f) {
   res <- frame$protocol("/stacks/push", f)
   return(res)
 }
@@ -238,24 +240,131 @@ push_frame <- function (stack, obj, description = NULL, params = NULL,
 #' @param server A server to connect.
 #' @param error An error handling function.
 #' @return A function that implements JSON protocol.
-json_protocol <- function (server, error = .error) {
-  return(function (endpoint, data) {
+json_protocol <- function(server, error = .error) {
+  return(function(endpoint, data) {
     auth <- paste0("Bearer ", data$token)
+
+    .do_request <- function(server, endpoint, body, error) {
+      # r <- with_config(verbose(), POST(paste0(server, endpoint),
+      r <- POST(paste0(server, endpoint),
+                body = body, encode = "json",
+                add_headers(.headers = c("Authorization" = auth)))
+      .check(r, error)
+      return(content(r, "parsed"))
+    }
+
+    .do_upload <- function(upload_url, data) {
+      r <- PUT(url = upload_url, body = data)
+      return(r)
+    }
+
     body <- list.remove(data, "token")
-    # r <- with_config(verbose(), POST(paste0(server, endpoint),
-    r <- POST(paste0(server, endpoint),
-              body = body, encode = "json",
-              add_headers(.headers = c("Authorization"=auth)))
-    .check(r, error)
-    return(content(r, "parsed"))
+    if (object.size(body) < 5000000) return(.do_request(server, endpoint, body, error))
+    else {
+      content <- list()
+      for (index in seq_along(body$attachments)) {
+        data <- body$attachments[[index]]$data
+        body$attachments[[index]]$data <- NULL
+        content <- list.append(content, base64enc::base64decode(data))
+        body$attachments[[index]]$length = length(content[[index]])
+      }
+      res <- .do_request(server, endpoint, body, error)
+      for (attach in res$attachments) {
+        .do_upload(attach$upload_url, content[[attach$index + 1]])
+      }
+      return(res)
+    }
   })
 }
 
-.no_encryption <- function (data) {
+.no_encryption <- function(data) {
   return(data)
 }
 
 .get_os_info <- function() {
   info <- Sys.info()
-  return(list(sysname=info["sysname"], release=info["release"], version=info["version"], machine=info["machine"]))
+  return(list(sysname = info["sysname"], release = info["release"], version = info["version"], machine = info["machine"]))
+}
+
+.list_eq <- function(x, y) {
+  if (length(y) == 0) {
+    return(length(x) == 0)
+  } else {
+    x <- x[order(names(x))]
+    y <- y[order(names(y))]
+    return(identical(x, y))
+  }
+}
+
+.list_merge <- function(x, y) {
+  if (is.null(x)) {
+    x <- list()
+  }
+  if (is.null(y)) {
+    y <- list()
+  }
+  for(n in names(y)) {
+    x[n] <- y[n]
+  }
+  if (length(x) == 0) {
+    return(NULL)
+  } else {
+    return(x)
+  }
+}
+
+#' Pull data object from stack frame (head) which matches specified parameters.
+#'
+#' @param stack Stack you want to pull from.
+#' @param profile Profile to use. 'default' will be used if profile is not specified.
+#' @param filename Filename if you want to save downloaded file to disk.
+#' Lifespan of URL is limited by minutes, so filename is highly recommended for large files (> 5Mb),
+#' especially in the case of interactive computations. Specify the parameter in the case of non-text data.
+#' @param error HTTP error handling function.
+#' @param params Optional parameters to match.
+#' @param ... Parameters to match. Can be used as alternative to \code{params}. In the case of both are present this one will be merged into params.
+#' @return If filename is not NULL then it will be filename itself, otherwise it can be URL in the case of large files.
+#' @examples
+#' \donttest{
+#' df <- read.csv(pull("/public_datasets/fusionbase/covid19-germany", "Bundesland name"="All"))
+#' summary(df)
+#' }
+pull <- function(stack, profile = "default", filename = NULL, error = .error, params = NULL, ...) {
+  config <- get_config()
+  profile <- config$get_profile(profile)
+  if (is.null(profile)) stop(paste0("Can not find profile '", profile, "'"))
+  params <- .list_merge(params, list(...))
+  auth <- paste0("Bearer ", profile$token)
+  stack_path <- .stack_path(profile$user, stack)
+  url <- paste(profile$server, "stacks", stack_path, sep = "/")
+  r <- GET(url = url, encode = "json", add_headers(.headers = c("Authorization" = auth)))
+  .check(r, error)
+  res <- content(r, "parsed")
+  for(index in seq_along(res$stack$head$attachments)) {
+    attach <- res$stack$head$attachments[[index]]
+    if (.list_eq(attach$params, params)) {
+      frame <- res$stack$head$id
+      attach_url <- paste(profile$server, "attachs", stack_path, frame, index - 1, sep = "/")
+      attach_url <- paste0(attach_url, "?download=true")
+      r <- GET(url = attach_url, add_headers(.headers = c("Authorization" = auth)))
+      .check(r, error)
+      res <- content(r, "parsed")
+      if (is.null(res$attachment$data)) {
+        if (!is.null(filename)) {
+          download.file(url = res$attachment$download_url, filename, quiet=TRUE)
+          return(filename)
+        } else {
+          return(res$attachment$download_url)
+        }
+      } else {
+        text <- rawToChar(base64enc::base64decode(res$attachment$data))
+        if (is.null(filename)) filename <- tempfile()
+        file<-file(filename)
+        writeLines(text, file)
+        close(file)
+        return(filename)
+      }
+    }
+  }
+  stop(paste0("Can't match parameters ", paste(names(params), params, sep = "=",collapse = ";")))
 }
