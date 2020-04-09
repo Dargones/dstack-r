@@ -1,3 +1,7 @@
+#' Handle 'data.table' Objects
+#'
+#' @param col_names Save column names. \code{TRUE} by default.
+#' @param row_names Save row names. \code{FALSE} by default.
 datatable_handler <- function(col_names = TRUE, row_names = FALSE) {
   return(function (df, description, params) {
     df[, ] <- lapply(df[, ], as.character)

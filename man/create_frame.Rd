@@ -9,7 +9,6 @@ create_frame(
   profile = "default",
   auto_push = FALSE,
   protocol = NULL,
-  config = get_config(),
   encryption = NULL,
   check_access = TRUE
 )
@@ -50,8 +49,6 @@ from command line, make sure that you have already obtained token from the site.
 It may be useful if you want to see result immediately. Default is \code{FALSE}.}
 
 \item{protocol}{Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.}
-
-\item{config}{A configuration, by default it it will be obtained from YAML configuration files, so \code{yaml_config} will be used.}
 
 \item{encryption}{This is a ecryption method. By default is \code{NULL} and no encryption will be used.}
 

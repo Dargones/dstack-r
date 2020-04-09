@@ -15,4 +15,4 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.0.2
 Imports: uuid,nanotime,rjson,httr,rlist,yaml,base64enc
-Suggests: ggplot2, plotly, data.table
+Suggests: ggplot2,plotly,data.table

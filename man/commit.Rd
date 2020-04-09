@@ -4,7 +4,14 @@
 \alias{commit}
 \title{Commit Data to Stack Frame}
 \usage{
-commit(frame, obj, description = NULL, params = NULL, handler = auto_handler())
+commit(
+  frame,
+  obj,
+  description = NULL,
+  params = NULL,
+  handler = auto_handler(),
+  ...
+)
 }
 \arguments{
 \item{frame}{A frame you want to commit.}
@@ -20,6 +27,8 @@ case of multiple data objects in the stack frame, e.g. set of plots with setting
 
 \item{handler}{A handler which can be specified in the case of custom content,
 but by default it is \code{auto_handler}.}
+
+\item{...}{Optional parameters is an alternative to \code{params}. If both are present this one will be merged into params.}
 }
 \value{
 Changed frame.
