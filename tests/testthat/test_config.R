@@ -16,10 +16,12 @@ test_that("test in-place config", {
 })
 
 test_that("test local config", {
-  configure("default", "test", "test-token", persist = "local", dstack_dir = ".dstack_test")
+  dir <- ".dstack_test"
+  configure("default", "test", "test-token", persist = "local", dstack_dir = dir)
   use_config(in_place_config)
   conf <- get_config()$get_profile
   #print(conf("default"))
   expect_equal(conf("default")$user, "test")
+  unlink(dir, recursive = TRUE)
 })
 
