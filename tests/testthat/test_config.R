@@ -3,7 +3,8 @@ library(testthat)
 test_that("test in-place config", {
   expect_length(.dstack_env$in_place_config_data, 0)
   configure("default", "test", "test-token", persist = "in_place")
-  conf <- get_config()
+  use_config(in_place_config)
+  conf <- get_config()$get_profile
   print(conf)
   expect_length(.dstack_env$in_place_config_data$profiles, 1)
   expect_equal(conf("default")$user, "test")
@@ -16,7 +17,8 @@ test_that("test in-place config", {
 
 test_that("test local config", {
   configure("default", "test", "test-token", persist = "local", dstack_dir = ".dstack_test")
-  conf <- get_config()
+  use_config(in_place_config)
+  conf <- get_config()$get_profile
   #print(conf("default"))
   expect_equal(conf("default")$user, "test")
 })
