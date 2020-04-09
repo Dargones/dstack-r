@@ -8,7 +8,7 @@ Description: A native R package that allows to publish, share and track revision
   of plots using your favorite plotting package, e.g. 'ggplot2'. It also provides
   a kind of interactivity for such plots by specifying certain parameters for any 
   specific plot view. See <https://docs.dstack.ai> for more information.
-License: Apache License (>= 2.0)
+License: GPL-3
 URL: https://dstack.ai
 BugReports: https://github.com/dstackai/dstack-r/issues
 Encoding: UTF-8
