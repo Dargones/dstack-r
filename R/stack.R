@@ -1,5 +1,5 @@
 library(uuid)
-library(nanotime)
+library(bit64)
 library(rjson)
 library(httr)
 library(rlist)
@@ -12,7 +12,7 @@ library(rlist)
   if (http_error(res)) error(http_status(res)$message)
 }
 
-version <- "0.2.0"
+version <- "0.2.1"
 
 #' Create a New Frame in Stack
 #'
