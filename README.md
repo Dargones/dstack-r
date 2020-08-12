@@ -26,17 +26,50 @@ Configuring **dstack profiles** separately from your code, allows you to make th
 Configuring a **dstack profile** can be done by the following command:
 
 ```bash
-dstack config --token <TOKEN> --user <USER>
+dstack config add --token <TOKEN> --user <USER>
 ```
 or simply
 ```bash
-dstack config
+dstack config add
 ```
-In this case, the **dstack profile** name will be `default`. You can change it by including `--profile <PROFILE NAME>` in your command. This allows you to configure multiple profiles and refer to them from your code by their names.
+In this case, the **dstack profile** name will be `default`. You can change it by including 
+profile name in your command `dstack config add <PROFILE_NAME>`. This allows you to configure multiple profiles and refer 
+to them from your code by their names.
 
-By default, the configuration profile is stored locally, i.e. in your working directory: `<WORKING_DIRECTORY>/.dstack/config.yaml`
+By default, the configuration profile is in your home directory: `$HOME/.dstack/config.yaml`
 
-See [CLI Reference](https://docs.dstack.ai/cli-reference) to more information about command line tools or type `dstack config --help`.
+---
+
+**NOTE**
+
+Before CLI version 0.4.2 config was stored in a working directory. Please, do not forget to move the
+local config into your home directory.
+
+---
+
+See [documentation](https://docs.dstack.ai/) for more information about command line tools or type `dstack --help`.
+
+You can also configure **dstack** by using R console:
+```r
+dstack::configure(user = "<USER>", token = "<TOKEN>", persist = "global")
+``` 
+
+## How to install dstack server locally
+From CLI version 0.4 it is possible to use a local version of [dstack](https://github.com/dstackai/dstack) 
+server.
+ 
+To start it, use the following command:
+```bash
+dstack server start
+```
+This command installs the latest version (if it's not installed) of the server and starts it. If environment variable `JAVA_HOME` is set
+and version of JDK is compatible with the server, that version will be used. In the case if 
+installer can't find `JAVA_HOME` or JDK version is incompatible with current server version
+it will download a compatible version by itself. To update server use `dstack server update`. 
+
+Follow instructions provided by the server in the terminal.
+
+Use `dstack server --help` for more information.
 
 ## Publishing simple plots
 
