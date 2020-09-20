@@ -5,7 +5,6 @@ test_that("test in-place config", {
   configure("default", "test", "test-token", persist = "in_place")
   use_config(in_place_config)
   conf <- get_config()$get_profile
-  print(conf)
   expect_length(.dstack_env$in_place_config_data$profiles, 1)
   expect_equal(conf("default")$user, "test")
   expect_equal(conf("default")$token, "test-token")

@@ -3,6 +3,7 @@ library(bit64)
 library(rjson)
 library(httr)
 library(rlist)
+library(rlang)
 
 .error <- function(message) {
   stop(message)
@@ -12,7 +13,111 @@ library(rlist)
   if (http_error(res)) error(http_status(res)$message)
 }
 
-version <- "0.2.1"
+version <- "0.3.0"
+
+PushResult <- Class("PushResult", list(
+  id = NULL,
+  url = NULL,
+
+  initialize = function(frame_id, url) {
+    stopifnot(is.character(frame_id), length(frame_id) == 1)
+    stopifnot(is.character(url), length(url) == 1)
+
+    self$id <- frame_id
+    self$url <- url
+  },
+
+  print = function(...) {
+    cat(self$url, "\n", sep = "")
+    invisible(self)
+  }
+))
+
+StackFrame <-
+  Class("StackFrame",
+        public = list(
+
+          access = NULL,
+          auto_push = FALSE,
+          context = NULL,
+          data = NULL,
+          index = 0,
+          id = NULL,
+          timestamp = NULL,
+
+          initialize = function(context, access,
+                                auto_push = FALSE) {
+            stopifnot(is.logical(auto_push), length(auto_push) == 1)
+
+            self$context <- context
+            self$access <- access
+            self$auto_push <- auto_push
+            self$id <- UUIDgenerate()
+            self$timestamp <- as.character(as.integer64(as.numeric(Sys.time()) * 1000))
+          },
+
+          add = function(obj, description = NULL, params = NULL, handler = NULL, ...) {
+            stopifnot(!is.null(obj))
+            stopifnot(!is.null(description) && is.character(description), length(description) == 1)
+
+            handler <- handler %||% auto_handler()
+
+            params <- .list_merge(params, list(...))
+            data <- handler(obj, description, params)
+            self$data <- append(self$data, list(list.clean(data)))
+
+            if (self$auto_push == TRUE) {
+              private$push_data(data)
+            }
+          },
+
+          push = function(message = NULL) {
+            f <- private$new_frame()
+            if (!is.null(message)) {
+              f$message <- message
+            }
+            if (self$auto_push == FALSE) {
+              f$attachments <- self$data
+            } else {
+              f$size <- private$index
+            }
+            return(private$send_push(f))
+          },
+
+          send_access = function() {
+            context <- self$context
+            res <- context$protocol$access(context$stack_path(), context$profile$token)
+            return(res)
+          }
+        ),
+
+        private = list(
+
+          push_data = function(data) {
+            f <- private$new_frame()
+            f$index <- self$index
+            f$attachments <- list(data)
+            self$index <- self$index + 1
+            private$send_push(f)
+          },
+
+          send_push = function(f) {
+            context <- self$context
+            res <- context$protocol$push(context$stack_path(), context$profile$token, f)
+            return(res)
+          },
+
+          new_frame = function() {
+            profile <- self$context$profile
+            return(list(stack = .stack_path(profile$user, self$context$stack),
+                        token = profile$token,
+                        id = self$id,
+                        timestamp = self$timestamp,
+                        client = "dstack-r",
+                        version = version,
+                        os = .get_os_info()))
+          }
+        ))
 
 #' Create a New Frame in Stack
 #'
@@ -52,7 +157,6 @@ version <- "0.2.1"
 #' @param auto_push Tells the system to push frame just after commit.
 #' It may be useful if you want to see result immediately. Default is \code{FALSE}.
 #' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
-#' @param encryption This is a ecryption method. By default is \code{NULL} and no encryption will be used.
 #' @param check_access Check access to specified stack, default is \code{TRUE}.
 #' @return New frame.
 #' @examples
@@ -66,26 +170,29 @@ version <- "0.2.1"
 #' }
 create_frame <- function(stack,
                          profile = "default",
+                         access = c(NULL, "public", "private"),
                          auto_push = FALSE,
-                         protocol = NULL,
-                         encryption = NULL,
                          check_access = TRUE) {
-  config <- get_config()$get_profile
-  if (is.null(encryption)) encryption <- .no_encryption
-  conf <- config(profile)
-  protocol <- if (is.null(protocol)) json_protocol(conf$server) else protocol
-  frame <- list(stack = stack,
-                user = conf$user,
-                token = conf$token,
-                auto_push = auto_push,
-                protocol = protocol,
-                encryption = encryption,
-                data = list(),
-                index = 0)
-  frame$id <- UUIDgenerate()
-  frame$timestamp <- as.character(as.integer64(as.numeric(Sys.time()) * 1000)) # milliseconds
-  if (check_access) .send_access(frame)
+  access <- match.arg(access)
+  context <- .create_context(stack, profile)
+  frame <- StackFrame$new(context, access, auto_push)
+  if (check_access) frame$send_access()
   return(frame)
+}
+
+.create_context <- function(stack, profile) {
+  config <- get_config()
+  profile <- config$get_profile(profile)
+  protocol <- .create_protocol(profile)
+  context <- Context$new(stack, profile, protocol)
+}
+
+.create_protocol <- function(profile) {
+  if (is.null(.dstack_env$protocol_factory)) {
+    .dstack_env$protocol_factory <- JsonProtocolFactory$new()
+  }
+
+  return(.dstack_env$protocol_factory$create(profile))
 }
 
 #' Commit Data to Stack Frame
@@ -115,23 +222,8 @@ create_frame <- function(stack,
 #' frame <- commit(frame, image, "Diamonds bar chart")
 #' print(push(frame)) # print actual stack URL
 #' }
-commit <- function(frame, obj, description = NULL, params = NULL, handler = auto_handler(), ...) {
-  params <- .list_merge(params, list(...))
-  data <- handler(obj, description, params)
-  encrypted_data <- frame$encryption(data)
-  frame$data <- append(frame$data, list(list.clean(encrypted_data)))
-  if (frame$auto_push == TRUE) {
-    frame <- push_data(frame, encrypted_data)
-  }
-  return(frame)
-}
-
-push_data <- function(frame, data) {
-  f <- .new_frame(frame)
-  f$index <- frame$index
-  f$attachments <- list(data)
-  frame$index <- frame$index + 1
-  .send_push(frame, f)
+commit <- function(frame, obj, description = NULL, params = NULL, handler = NULL, ...) {
+  frame$add(obj, description, params, handler, ...)
   return(frame)
 }
 
@@ -154,16 +246,7 @@ push_data <- function(frame, data) {
 #' print(push(frame)) # print actual stack URL
 #' }
 push <- function(frame, message = NULL) {
-  f <- .new_frame(frame)
-  if (!is.null(message)) {
-    f$message <- message
-  }
-  if (frame$auto_push == FALSE) {
-    f$attachments <- frame$data
-  } else {
-    f$size <- frame$index
-  }
-  return(.send_push(frame, f))
+  return(frame$push(message))
 }
 
 #' Creates a Frame, Commits and Pushes Data in a Single Operation
@@ -181,7 +264,6 @@ push <- function(frame, message = NULL) {
 #' @param profile Profile you want to use, i.e. username and token. Default profile is 'default'.
 #' @param handler Specify handler to handle the object, if it's None then \code{auto_handler} will be used.
 #' @param protocol Protocol to use, usually it is \code{NULL} it means that \code{json_protocol} will be used.
-#' @param encryption Encryption method by default \code{no_encryption} will be used.
 #' @param ... Optional parameters is an alternative to \code{params}. If both are present this one will be merged into params.
 #' @return Stack URL.
 #' @examples
@@ -194,14 +276,10 @@ push <- function(frame, message = NULL) {
 push_frame <- function(stack, obj, description = NULL, params = NULL,
                        message = NULL,
                        profile = "default",
-                       handler = auto_handler(),
-                       protocol = NULL,
-                       encryption = .no_encryption, ...) {
+                       handler = auto_handler(), ...) {
   params <- .list_merge(params, list(...))
   frame <- create_frame(stack = stack,
-                        protocol = protocol,
                         profile = profile,
-                        encryption = encryption,
                         check_access = FALSE)
   frame <- commit(frame, obj, description, params, handler)
   return(push(frame, message))
@@ -209,27 +287,6 @@ push_frame <- function(stack, obj, description = NULL, params = NULL,
 
 .stack_path <- function(user, stack) {
   return(if (startsWith(stack, "/")) substring(stack, 2) else paste(user, stack, sep = "/"))
-}
-
-.new_frame <- function(frame) {
-  return(list(stack = .stack_path(frame$user, frame$stack),
-              token = frame$token,
-              id = frame$id,
-              timestamp = frame$timestamp,
-              client = "dstack-r",
-              version = version,
-              os = .get_os_info()))
-}
-
-.send_access <- function(frame) {
-  req <- list(stack = .stack_path(frame$user, frame$stack), token = frame$token)
-  res <- frame$protocol("/stacks/access", req)
-  return(res)
-}
-
-.send_push <- function(frame, f) {
-  res <- frame$protocol("/stacks/push", f)
-  return(res)
 }
 
 #' JSON Protocol Implementation to Connect API Server
@@ -241,44 +298,7 @@ push_frame <- function(stack, obj, description = NULL, params = NULL,
 #' @param error An error handling function.
 #' @return A function that implements JSON protocol.
 json_protocol <- function(server, error = .error) {
-  return(function(endpoint, data) {
-    auth <- paste0("Bearer ", data$token)
-
-    .do_request <- function(server, endpoint, body, error) {
-      # r <- with_config(verbose(), POST(paste0(server, endpoint),
-      r <- POST(paste0(server, endpoint),
-                body = body, encode = "json",
-                add_headers(.headers = c("Authorization" = auth)))
-      .check(r, error)
-      return(content(r, "parsed"))
-    }
-
-    .do_upload <- function(upload_url, data) {
-      r <- PUT(url = upload_url, body = data)
-      return(r)
-    }
-
-    body <- list.remove(data, "token")
-    if (object.size(body) < 5000000) return(.do_request(server, endpoint, body, error))
-    else {
-      content <- list()
-      for (index in seq_along(body$attachments)) {
-        data <- body$attachments[[index]]$data
-        body$attachments[[index]]$data <- NULL
-        content <- list.append(content, base64enc::base64decode(data))
-        body$attachments[[index]]$length = length(content[[index]])
-      }
-      res <- .do_request(server, endpoint, body, error)
-      for (attach in res$attachments) {
-        .do_upload(attach$upload_url, content[[attach$index + 1]])
-      }
-      return(res)
-    }
-  })
-}
-
-.no_encryption <- function(data) {
-  return(data)
+  return(JsonProtocol$new(server = server, error = error))
 }
 
 .get_os_info <- function() {
@@ -303,7 +323,7 @@ json_protocol <- function(server, error = .error) {
   if (is.null(y)) {
     y <- list()
   }
-  for(n in names(y)) {
+  for (n in names(y)) {
     x[n] <- y[n]
   }
   if (length(x) == 0) {
@@ -340,7 +360,7 @@ pull <- function(stack, profile = "default", filename = NULL, error = .error, pa
   r <- GET(url = url, encode = "json", add_headers(.headers = c("Authorization" = auth)))
   .check(r, error)
   res <- content(r, "parsed")
-  for(index in seq_along(res$stack$head$attachments)) {
+  for (index in seq_along(res$stack$head$attachments)) {
     attach <- res$stack$head$attachments[[index]]
     if (.list_eq(attach$params, params)) {
       frame <- res$stack$head$id
@@ -351,7 +371,7 @@ pull <- function(stack, profile = "default", filename = NULL, error = .error, pa
       res <- content(r, "parsed")
       if (is.null(res$attachment$data)) {
         if (!is.null(filename)) {
-          download.file(url = res$attachment$download_url, filename, quiet=TRUE)
+          download.file(url = res$attachment$download_url, filename, quiet = TRUE)
           return(filename)
         } else {
           return(res$attachment$download_url)
@@ -359,12 +379,12 @@ pull <- function(stack, profile = "default", filename = NULL, error = .error, pa
       } else {
         text <- rawToChar(base64enc::base64decode(res$attachment$data))
         if (is.null(filename)) filename <- tempfile()
-        file<-file(filename)
+        file <- file(filename)
         writeLines(text, file)
         close(file)
         return(filename)
       }
     }
   }
-  stop(paste0("Can't match parameters ", paste(names(params), params, sep = "=",collapse = ";")))
+  stop(paste0("Can't match parameters ", paste(names(params), params, sep = "=", collapse = ";")))
 }

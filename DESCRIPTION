@@ -1,7 +1,7 @@
 Package: dstack
 Type: Package
 Title: Publishing Interactive Plots
-Version: 0.2.1
+Version: 0.3.0
 Authors@R: person("Vitaly", "Khudobakhshov", email = "vitaly@dstack.ai",
   role = c("aut", "cre"))
 Description: A native R package that allows to publish, share and track revisions 
